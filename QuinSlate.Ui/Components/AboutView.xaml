@@ -166,11 +166,22 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                <!-- FlatLinkButtonStyle already pads each button by 8 on both sides, so this
+                     spacing is only the gap between the two hover rects — keep it small. -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <Button Style="{StaticResource FlatLinkButtonStyle}" Click="OnReportIssueClicked">
                         <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                             <FontIcon Glyph="&#xE8A1;" FontSize="12" VerticalAlignment="Center" />
                             <TextBlock Text="Report an issue" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Segoe Fluent Icons carries no brand glyph, so the mark ships as an SVG
+                         asset pair; the source is bound in code (see ThemedImageAsset). -->
+                    <Button Style="{StaticResource FlatLinkButtonStyle}" Click="OnGitHubClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <Image x:Name="GitHubMarkImage" Width="12" Height="12" VerticalAlignment="Center" />
+                            <TextBlock Text="GitHub" FontSize="12" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                 </StackPanel>

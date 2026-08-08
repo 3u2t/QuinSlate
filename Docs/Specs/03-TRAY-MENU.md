@@ -49,7 +49,10 @@ About
 - Includes a data location card that shows the dynamic local AppData path with "Open folder" and "Copy path" actions.
 - Displays a visual keyboard hotkey mapping for the global toggle shortcut (`Ctrl`+`Shift`+`Q`).
 - Illustrates a "Quick math" row to demo the inline evaluation feature.
-- Displays link buttons to "Report an issue" (GitHub repository) and "MIT license" in the footer.
+- Displays link buttons in the footer: "Report an issue" (opens a mail draft to the support address)
+  and "GitHub" (opens the project repository in the default browser). Segoe Fluent Icons has no
+  brand glyph, so the GitHub mark ships as a themed SVG asset pair in GitHub's Invertocat style
+  (`Assets/GitHubMark-light.svg` / `-dark.svg`) bound through `ThemedImageAsset`.
 
 Exit
 - Flush any pending debounced buffer writes synchronously.

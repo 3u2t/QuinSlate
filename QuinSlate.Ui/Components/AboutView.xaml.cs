@@ -1,7 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using QuinSlate.Ui.Constants;
 using Serilog;
 using System;
@@ -19,12 +18,15 @@ namespace QuinSlate.Ui.Components;
 public sealed partial class AboutView : UserControl
 {
     private const string ReportIssueMailtoUri = "mailto:contact@quinslate.com?subject=QuinSlate%20issue%20report";
+    private const string GitHubRepositoryUri = "https://github.com/SergeyLukashov/QuinSlate";
     private const string AboutTitlePrefix = "About ";
     private const string VersionPrefix = "v";
     private const char SemVerMetadataSeparator = '+';
     private const int VersionFieldCount = 3;
     private const string DarkLogoAsset = "ms-appx:///Assets/Logo-dark.png";
     private const string LightLogoAsset = "ms-appx:///Assets/Logo-light.png";
+    private const string DarkGitHubMarkAsset = "ms-appx:///Assets/GitHubMark-dark.svg";
+    private const string LightGitHubMarkAsset = "ms-appx:///Assets/GitHubMark-light.svg";
 
     private const string MiddleEllipsis = "…";
 
@@ -51,6 +53,8 @@ public sealed partial class AboutView : UserControl
     /// </summary>
     public string StorageDirectory { get; set; }
 
+    private readonly ThemedImageAsset[] themedArtwork;
+
     private string dataDirectory;
     private string dataPath;
 
@@ -60,6 +64,12 @@ public sealed partial class AboutView : UserControl
     public AboutView()
     {
         InitializeComponent();
+
+        themedArtwork = new[]
+        {
+            new ThemedImageAsset(LogoImage, LightLogoAsset, DarkLogoAsset),
+            new ThemedImageAsset(GitHubMarkImage, LightGitHubMarkAsset, DarkGitHubMarkAsset)
+        };
 
         PopulateAppInfo();
         PopulateAppDataPath();
@@ -71,7 +81,7 @@ public sealed partial class AboutView : UserControl
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         ApplyDitheredBackground();
-        UpdateThemedLogo();
+        ApplyThemedArtwork();
     }
 
     private void PopulateAppInfo()
@@ -81,13 +91,15 @@ public sealed partial class AboutView : UserControl
     }
 
     /// <summary>
-    /// Selects the logo lockup that matches the current theme: the dark-theme
-    /// asset carries a light wordmark for dark backgrounds and vice versa.
+    /// Repaints every themed asset on the card. Each dark-theme asset carries light artwork for
+    /// dark backgrounds and vice versa.
     /// </summary>
-    private void UpdateThemedLogo()
+    private void ApplyThemedArtwork()
     {
-        var asset = ActualTheme == ElementTheme.Dark ? DarkLogoAsset : LightLogoAsset;
-        LogoImage.Source = new BitmapImage(new Uri(asset));
+        foreach (ThemedImageAsset artwork in themedArtwork)
+        {
+            artwork.Apply(ActualTheme);
+        }
     }
 
     /// <summary>
@@ -120,7 +132,7 @@ public sealed partial class AboutView : UserControl
     private void OnActualThemeChanged(FrameworkElement sender, object args)
     {
         ApplyDitheredBackground();
-        UpdateThemedLogo();
+        ApplyThemedArtwork();
     }
 
     private void ApplyDitheredBackground()
@@ -278,6 +290,18 @@ public sealed partial class AboutView : UserControl
         catch (Exception ex)
         {
             Log.ForContext<AboutView>().Warning(ex, "Failed to launch the report-issue mail link.");
+        }
+    }
+
+    private void OnGitHubClicked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _ = Windows.System.Launcher.LaunchUriAsync(new Uri(GitHubRepositoryUri));
+        }
+        catch (Exception ex)
+        {
+            Log.ForContext<AboutView>().Warning(ex, "Failed to launch the GitHub repository link.");
         }
     }
 }
