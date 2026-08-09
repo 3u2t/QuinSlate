@@ -1,6 +1,6 @@
 # SPEC: Panel anchor and position memory
 
-> _Last updated: 2026-07-05_
+> _Last updated: 2026-08-08_
 
 ## What
 The panel opens in a sensible default position on first launch and
@@ -39,10 +39,22 @@ physical pixel size reported by `AppWindow.Size` back to logical pixels:
 
 On subsequent launches, read the saved size from `settings.json`, convert to
 physical pixels for the current monitor's DPI, and call `AppWindow.Resize`
-before the window is shown. Fall back to the default size (560 × 680) if the
+before the window is shown. Fall back to the default size (740 × 560) if the
 saved values are missing or zero.
 
-Minimum size is 300 × 400 logical px, enforced via `WM_GETMINMAXINFO`.
+Minimum size is 360 × 280 logical px, enforced via `WM_GETMINMAXINFO`.
+
+## Only the restored state is remembered
+
+Size and position are written **only** while the window is in the restored state
+(`OverlappedPresenter.State == Restored`). A maximized window reports the full work area and a
+minimized one reports a position far off-screen (`-32000`); persisting either would overwrite
+the geometry the user actually arranged, so the panel would come back full-screen-but-not-
+maximized, or fail the off-screen guard below and snap to the default anchor. The guard applies
+to the debounced write and to the synchronous write on exit alike, so quitting from a minimized
+or maximized window keeps the last restored geometry.
+
+Maximized-ness itself is not persisted: the panel always opens restored.
 
 ## Off-screen guard
 
@@ -61,8 +73,8 @@ the last run), reset to the default anchor position. Do not show an error.
       "HasSavedPosition": true,
       "WindowLeft":       1420,
       "WindowTop":        820,
-      "WindowWidth":      560,
-      "WindowHeight":     680
+      "WindowWidth":      740,
+      "WindowHeight":     560
     }
 
 All values are in logical pixels; property names are serialized in PascalCase (the

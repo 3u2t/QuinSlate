@@ -27,10 +27,10 @@ namespace QuinSlate.Ui.Views;
 /// per buffer). The web editor is a fixed overlay covering the TabView content area; tab switches
 /// tell the page which buffer state to activate.
 ///
-/// Title-bar layout: the pin and close buttons are a top-level overlay anchored to the
-/// window's top-right corner, so they can never be clipped by the TabView's internal
-/// columns. The TabView's TabStripFooter holds a fixed-width transparent spacer reserving
-/// exactly the overlay cluster's width so the tabs stop where the buttons begin.
+/// Title-bar layout: the pin, minimize, maximize/restore, and close buttons are a top-level
+/// overlay anchored to the window's top-right corner, so they can never be clipped by the
+/// TabView's internal columns. The TabView's TabStripFooter holds a fixed-width transparent
+/// spacer reserving exactly the overlay cluster's width so the tabs stop where the buttons begin.
 /// </summary>
 public sealed partial class BufferPanel : UserControl
 {
@@ -38,6 +38,13 @@ public sealed partial class BufferPanel : UserControl
     private const string PinnedGlyph = "";
     private const string PinTooltip = "Keep window always on top";
     private const string UnpinTooltip = "Stop keeping window on top";
+
+    // ChromeMaximize / ChromeRestore in Segoe Fluent Icons, the glyphs the system caption
+    // buttons use, so the custom title bar reads as the standard one.
+    private const string MaximizeGlyph = "";
+    private const string RestoreGlyph = "";
+    private const string MaximizeTooltip = "Maximize";
+    private const string RestoreTooltip = "Restore down";
     private const string RenameTabMenuText = "Rename tab";
     private const string RenameTabIconGlyph = "";
     private const string FluentIconFontFamily = "Segoe Fluent Icons";
@@ -192,6 +199,20 @@ public sealed partial class BufferPanel : UserControl
     public event EventHandler PinToggleRequested;
 
     /// <summary>
+    /// Raised when the user clicks the minimize button. The caller should minimize the window
+    /// to the taskbar — deliberately not the same as <see cref="CloseRequested"/>, which hides
+    /// it to the tray.
+    /// </summary>
+    public event EventHandler MinimizeRequested;
+
+    /// <summary>
+    /// Raised when the user clicks the maximize/restore button. The caller should toggle the
+    /// window between maximized and restored and call <see cref="SetMaximized"/> to update the
+    /// glyph.
+    /// </summary>
+    public event EventHandler MaximizeRestoreRequested;
+
+    /// <summary>
     /// Raised when the user clicks the close button. The caller should hide the
     /// window (QuinSlate hides to the tray rather than terminating).
     /// </summary>
@@ -255,6 +276,18 @@ public sealed partial class BufferPanel : UserControl
     {
         PinIcon.Glyph = isPinned ? PinnedGlyph : PinGlyph;
         ToolTipService.SetToolTip(PinButton, isPinned ? UnpinTooltip : PinTooltip);
+    }
+
+    /// <summary>
+    /// Updates the maximize/restore button glyph and tooltip to reflect
+    /// <paramref name="isMaximized"/>. Driven by the window rather than by the button's own
+    /// click, because the state also changes without the button — snap layouts, Win+Up, and a
+    /// double-click on the title-bar drag area all maximize or restore behind the panel's back.
+    /// </summary>
+    public void SetMaximized(bool isMaximized)
+    {
+        MaximizeIcon.Glyph = isMaximized ? RestoreGlyph : MaximizeGlyph;
+        ToolTipService.SetToolTip(MaximizeButton, isMaximized ? RestoreTooltip : MaximizeTooltip);
     }
 
     /// <summary>
@@ -1408,6 +1441,16 @@ public sealed partial class BufferPanel : UserControl
     private void OnPinButtonClicked(object sender, RoutedEventArgs e)
     {
         PinToggleRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnMinimizeButtonClicked(object sender, RoutedEventArgs e)
+    {
+        MinimizeRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnMaximizeButtonClicked(object sender, RoutedEventArgs e)
+    {
+        MaximizeRestoreRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnCloseButtonClicked(object sender, RoutedEventArgs e)

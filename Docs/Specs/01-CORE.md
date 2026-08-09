@@ -1,6 +1,6 @@
 # SPEC: Core buffers, tray icon, hotkey, autosave
 
-> _Last updated: 2026-07-08_
+> _Last updated: 2026-08-08_
 
 ## What
 The foundation of the app. Five persistent text buffers displayed in a
@@ -61,10 +61,33 @@ the error. Do not crash or show a dialog.
 
 ## Panel
 
-- Default size: 560 × 680 logical px (device-independent pixels at 96 DPI = 1 DIP).
-- Minimum size: 300 × 400 logical px, enforced via `WM_GETMINMAXINFO`.
+- Default size: 740 × 560 logical px (device-independent pixels at 96 DPI = 1 DIP). The width
+  is set by the tab strip, not by taste: below 719 DIP the five tabs no longer fit at their
+  100 DIP floor and the strip surfaces scroll chevrons, so the default sits just above that
+  (see [14-TABS-REDESIGN.md](14-TABS-REDESIGN.md)).
+- Minimum size: 360 × 280 logical px, enforced via `WM_GETMINMAXINFO`.
 - Resizable. The user may drag the window edges to any size above the minimum.
 - Font: system monospace, 13 pt.
+
+## Window chrome
+
+The system title bar and its caption buttons are removed
+(`OverlappedPresenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false)`); the resize
+border stays. The panel draws its own four title-bar buttons at the top right, left to right:
+
+| Button | Action |
+|---|---|
+| Pin | Toggles always-on-top — see [09-PIN-WINDOW.md](09-PIN-WINDOW.md) |
+| Minimize | Minimizes the window to the taskbar. It stays a taskbar window; it does **not** hide to the tray |
+| Maximize / Restore | Toggles maximized. The glyph tracks the live window state, so shell gestures that maximize without the button (Win+Up, snap layouts, dragging to the top edge) keep it correct |
+| Close | Hides the panel to the tray. The app keeps running |
+
+Minimize is the one place where "minimize" does not mean "hide to tray". Every *other* route
+into minimize still hides to the tray — notably a click on the taskbar button while the panel
+is active, which the shell delivers as `WM_SYSCOMMAND`/`SC_MINIMIZE`, and "Show Desktop"
+(Win+D), which delivers `WM_SIZE`/`SIZE_MINIMIZED`. `MainWindow` intercepts both and calls
+`HidePanel`; the panel's own minimize button raises a flag for the duration of its
+`OverlappedPresenter.Minimize()` call so that interception stands aside.
 
 ## Out of scope
 

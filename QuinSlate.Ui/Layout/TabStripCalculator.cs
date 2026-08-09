@@ -19,8 +19,18 @@ internal static class TabStripCalculator
     /// <summary>Fallback width of the title-bar icon area (TabStripHeader). Padding 9+6 + a 20px image = 35.</summary>
     internal const double TitleBarHeaderFallbackWidth = 35;
 
-    /// <summary>Fallback width of the right-hand footer spacer (the <c>TitleBarButtonsClusterWidth</c> XAML resource).</summary>
-    internal const double TitleBarFooterFallbackWidth = 92;
+    /// <summary>
+    /// Fallback width of the right-hand footer spacer (the <c>TitleBarButtonsClusterWidth</c>
+    /// XAML resource): the pin, minimize, maximize, and close buttons at 40 DIP each plus the
+    /// 12 DIP gap that separates the cluster from the tabs.
+    ///
+    /// This is the dominant term in how wide the window must be before the tabs stop fitting:
+    /// the strip needs <c>TitleBarHeaderFallbackWidth + this + TabStripChrome +
+    /// tabCount * TabMinWidth</c> = 719 DIP for five tabs. <c>MainWindow.PanelDefaultWidth</c>
+    /// is sized above that so a default-sized window never opens with scroll chevrons; keep
+    /// the two in step.
+    /// </summary>
+    internal const double TitleBarFooterFallbackWidth = 172;
 
     /// <summary>
     /// Fixed horizontal chrome the tab strip consumes around the tab run itself, inside the region

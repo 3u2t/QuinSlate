@@ -1,6 +1,6 @@
 # SPEC: Pin window
 
-> _Last updated: 2026-07-05_
+> _Last updated: 2026-08-08_
 
 ## What
 A toggle that keeps the panel above all other windows so the user can
@@ -8,8 +8,9 @@ read from a buffer while working in another app.
 
 ## Behaviour
 
-- The panel has a pin button (📌) in its chrome, alongside the close/hide
-  button.
+- The panel has a pin button (📌) in its chrome, leftmost of the four
+  title-bar buttons — pin, minimize, maximize/restore, close (see the window
+  chrome table in [01-CORE.md](01-CORE.md)).
 - When pinned: the panel stays above all other windows at all times,
   including when focus moves elsewhere.
 - When unpinned: the panel behaves like a normal window.

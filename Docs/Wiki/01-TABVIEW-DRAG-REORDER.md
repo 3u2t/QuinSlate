@@ -1,6 +1,6 @@
 # TabView drag-reorder: the four SDK traps
 
-> _Last updated: 2026-07-10_
+> _Last updated: 2026-08-08_
 
 How QuinSlate's five tabs came to be drag-reorderable, and the four separate WinUI `TabView`
 behaviours that had to be worked around to make it look right. Every number below was measured
@@ -153,10 +153,36 @@ Enabling reorder without this would look like it worked and then silently lose t
 
 ---
 
+---
+
+## 5. The title-bar button cluster sets the width at which the strip overflows
+
+The tabs get what is left of the window after the title-bar icon (35 DIP), the overlay button
+cluster, and `TabStripChrome` (12 DIP). So the cluster width is what decides how narrow the
+window can get before the five tabs hit their 100 DIP floor and the strip starts scrolling:
+
+    overflow threshold = 35 + cluster + 12 + 5 * TabMinWidth
+
+Adding the minimize and maximize buttons took the cluster from **92 → 172 DIP** (four buttons at
+40 plus the 12 DIP gap), which moved that threshold from 559 to **719 DIP** — past the 660 DIP
+default window, so the default would have opened showing scroll chevrons. `PanelDefaultWidth`
+went to **740** to stay above it.
+
+Three places carry the cluster width and must move together: the `TitleBarButtonsClusterWidth`
+XAML resource (which sizes the `TabStripFooter` spacer), `TabStripCalculator.TitleBarFooterFallbackWidth`
+(the code-behind fallback, and what pins `RightContentColumn`), and `PanelDefaultWidth`. A unit
+test asserts the default window still fits five tabs above the floor.
+
+---
+
 ## Known gaps
 
 - **Dragging a tab that is not the active one does not activate it.** A plain click selects
   normally; only the drag path differs (likely the `GettingFocus` cancel in
   `BufferPanel.OnTabItemGettingFocus`). Browsers select the tab the moment you pick it up.
 - The tabs now sit up to ~5 DIP narrower in total than the strip. Invisible, but real.
-- Behaviour on a **maximized** window has not been verified; the sweep covered 380–900 DIP.
+- Behaviour on a **maximized** window is covered by the unit-test sweep (320–3840 DIP, sub-DIP
+  steps, asserting the tab run never exceeds the viewport) but has **not been verified against
+  the running app** since the maximize button was added. The thing to look at is the top-right
+  corner: the close button is drawn flush to the window's right edge, and a maximized
+  caption-less `OverlappedPresenter` window can overhang the work area by the frame thickness.

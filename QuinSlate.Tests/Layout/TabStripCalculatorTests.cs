@@ -20,10 +20,13 @@ public sealed class TabStripCalculatorTests
         // The whole point of TabStripChrome: tabCount * perTab, plus the chrome the strip itself
         // consumes, must stay within the region left over after the header and footer. If it does
         // not, the strip is permanently scrollable and a drag-reorder parks it off its left edge.
+        //
+        // The sweep runs from below the panel minimum to a maximized 4K window at 100% scaling,
+        // in sub-DIP steps, so every width a resize or a maximize can land on is covered.
         const double header = 35.2;
-        const double footer = 92;
+        const double footer = TabStripCalculator.TitleBarFooterFallbackWidth;
 
-        for (double total = 640; total <= 1600; total += 0.4)
+        for (double total = 320; total <= 3840; total += 0.4)
         {
             double perTab = TabStripCalculator.ComputePerTabMaxWidth(total, header, footer, 5);
             if (perTab <= TabStripCalculator.TabMinWidth)
@@ -47,15 +50,37 @@ public sealed class TabStripCalculatorTests
     }
 
     [Fact]
-    public void ComputePerTabMaxWidth_DefaultWindowWidth_FloorsAtTabMinWidth()
+    public void ComputePerTabMaxWidth_BelowTheOverflowThreshold_FloorsAtTabMinWidth()
     {
-        // 560 - 35 - 92 - 12 = 421 / 5 = 84.2 < 100 → floor to 100
+        // 560 - 35 (icon) - 172 (button cluster) - 12 (strip chrome) = 341 / 5 = 68.2 < 100
+        // → floor to 100, and the strip overflows into its scroll buttons.
         double result = TabStripCalculator.ComputePerTabMaxWidth(
             560,
             TabStripCalculator.TitleBarHeaderFallbackWidth,
             TabStripCalculator.TitleBarFooterFallbackWidth,
             5);
         Assert.Equal(TabStripCalculator.TabMinWidth, result);
+    }
+
+    [Fact]
+    public void ComputePerTabMaxWidth_DefaultWindowWidth_FitsFiveTabsAboveTheMinimum()
+    {
+        // MainWindow.PanelDefaultWidth. The four-button title-bar cluster reserves 172 DIP, so
+        // the overflow threshold for five tabs sits at 35 + 172 + 12 + 5 * 100 = 719: a default
+        // window narrower than that would open showing scroll chevrons. Guards the pairing
+        // between PanelDefaultWidth and TitleBarFooterFallbackWidth — changing either without
+        // the other regresses the default window.
+        const double panelDefaultWidth = 740;
+
+        double result = TabStripCalculator.ComputePerTabMaxWidth(
+            panelDefaultWidth,
+            TabStripCalculator.TitleBarHeaderFallbackWidth,
+            TabStripCalculator.TitleBarFooterFallbackWidth,
+            5);
+
+        Assert.True(
+            result > TabStripCalculator.TabMinWidth,
+            $"five tabs at the default window width fall back to the {TabStripCalculator.TabMinWidth} DIP floor (got {result}), so the strip overflows");
     }
 
     [Fact]

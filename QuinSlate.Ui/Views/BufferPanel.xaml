@@ -161,7 +161,7 @@
                     </Setter>
                 </Style>
 
-                <!-- Modern WinUI tooltip shared by the pin and close buttons -->
+                <!-- Modern WinUI tooltip shared by the title-bar buttons -->
                 <Style TargetType="ToolTip">
                     <Setter Property="Background" Value="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" />
                     <Setter Property="BorderBrush" Value="{ThemeResource SystemControlTransientBorderBrush}" />
@@ -191,10 +191,10 @@
             </TabView.TabStripHeader>
 
             <!-- Fixed-width transparent spacer reserving exactly the overlay button cluster's
-                 width (TitleBarButtonsClusterWidth = 92) in the tab strip, and the ONLY place
+                 width (TitleBarButtonsClusterWidth = 172) in the tab strip, and the ONLY place
                  that width is reserved (the TabView's right Padding is 0 to avoid stacking — see
                  the TabViewTabStripRightPadding note above). A fixed footer width makes the SDK
-                 pin RightContentColumn.MinWidth to a stable 92 (no star-column collapse, the
+                 pin RightContentColumn.MinWidth to a stable 172 (no star-column collapse, the
                  defect of the earlier footer-hosted approach), so the tabs stop where the
                  buttons begin and never slide under them. The spacer is IsHitTestVisible=False
                  so it never blocks the overlay buttons drawn over it; the drag region (set in
@@ -250,12 +250,14 @@
             <components:LimitNoticeView x:Name="LimitNoticeSurface" />
         </Grid>
 
-        <!-- Pin and close buttons as a top-level OVERLAY anchored to the window's top-right
-             corner. Being top-level (not inside any TabView column) they can never be clipped,
-             unlike the two earlier footer-hosted attempts. The cluster occupies exactly
-             TitleBarButtonsClusterWidth and lines up over the footer spacer: the pin's left
-             gap (TitleBarFooterLeftGap) sits 12px past the tabs' right edge, and the close
-             button sits flush against the window's right edge (no right inset). -->
+        <!-- Pin, minimize, maximize/restore, and close buttons as a top-level OVERLAY anchored
+             to the window's top-right corner. Being top-level (not inside any TabView column)
+             they can never be clipped, unlike the two earlier footer-hosted attempts. The
+             cluster occupies exactly TitleBarButtonsClusterWidth and lines up over the footer
+             spacer: the pin's left gap (TitleBarFooterLeftGap) sits 12px past the tabs' right
+             edge, and the close button sits flush against the window's right edge (no right
+             inset). Order matches the Windows caption convention, with the app-specific pin
+             ahead of the three system actions. -->
         <StackPanel
             Orientation="Horizontal"
             HorizontalAlignment="Right"
@@ -275,10 +277,35 @@
                     FontSize="12" />
             </Button>
             <Button
+                x:Name="MinimizeButton"
+                Style="{StaticResource TitleBarButtonStyle}"
+                Margin="0"
+                ToolTipService.ToolTip="Minimize"
+                IsTabStop="False"
+                UseSystemFocusVisuals="False"
+                Click="OnMinimizeButtonClicked">
+                <FontIcon
+                    Glyph="&#xE921;"
+                    FontSize="10" />
+            </Button>
+            <Button
+                x:Name="MaximizeButton"
+                Style="{StaticResource TitleBarButtonStyle}"
+                Margin="0"
+                ToolTipService.ToolTip="Maximize"
+                IsTabStop="False"
+                UseSystemFocusVisuals="False"
+                Click="OnMaximizeButtonClicked">
+                <FontIcon
+                    x:Name="MaximizeIcon"
+                    Glyph="&#xE922;"
+                    FontSize="10" />
+            </Button>
+            <Button
                 x:Name="CloseButton"
                 Style="{StaticResource CloseTitleBarButtonStyle}"
                 Margin="0"
-                ToolTipService.ToolTip="Close"
+                ToolTipService.ToolTip="Close to tray"
                 IsTabStop="False"
                 UseSystemFocusVisuals="False"
                 Click="OnCloseButtonClicked">

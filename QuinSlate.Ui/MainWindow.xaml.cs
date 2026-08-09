@@ -32,11 +32,18 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public const string WindowTitle = AppConstants.AppName;
 
-    private const int PanelDefaultWidth = 660;
+    // Sized so the five tabs still fit at their 100 DIP floor once the title-bar icon and the
+    // four-button overlay cluster are deducted: 35 + 172 + 12 (strip chrome) + 5 * 100 = 719 is
+    // the threshold below which the strip overflows and surfaces scroll chevrons. See
+    // TabStripCalculator.TitleBarFooterFallbackWidth.
+    private const int PanelDefaultWidth = 740;
     private const int PanelDefaultHeight = 560;
-    private const int PanelMinWidth = 280;
+
+    // The floor leaves the tab run the same 141 DIP it had at the old 280 minimum, before the
+    // button cluster grew by two buttons; below that the strip is chevrons and little else.
+    private const int PanelMinWidth = 360;
     private const int PanelMinHeight = 280;
-    private const int PanelDefaultInset = 16;
+    private const int PanelDefaultInset = 40;
     private const int SettingsDebounceMilliseconds = 500;
     private const double ModalScrimOpacity = 0.45;
     private const int ModalScrimFadeMilliseconds = 130;
@@ -112,6 +119,12 @@ public sealed partial class MainWindow : Window
     private bool isPinned;
     private bool isInitialised;
     private bool isContextMenuOpen;
+
+    // Set only while the title bar's own minimize button drives the window down, so the
+    // hide-to-tray interception of SC_MINIMIZE / WM_SIZE below stands aside and the window
+    // really minimizes to the taskbar. The interception still governs every other route into
+    // minimize (notably a click on the taskbar button while the panel is active).
+    private bool isMinimizingToTaskbar;
 
     /// <summary>
     /// Constructs the window. Call <see cref="Initialise"/> immediately
@@ -220,6 +233,8 @@ public sealed partial class MainWindow : Window
 
         Closed += OnWindowClosed;
         Panel.PinToggleRequested += OnPanelPinToggleRequested;
+        Panel.MinimizeRequested += OnPanelMinimizeRequested;
+        Panel.MaximizeRestoreRequested += OnPanelMaximizeRestoreRequested;
         Panel.CloseRequested += OnPanelCloseRequested;
         Panel.EditorFirstPainted += OnPanelEditorFirstPainted;
         Panel.StartupRenderSettled += OnPanelStartupRenderSettled;
@@ -385,7 +400,7 @@ public sealed partial class MainWindow : Window
         int physicalHeight = (int)Math.Round(logicalHeight * scale);
         appWindow.Resize(new Windows.Graphics.SizeInt32(physicalWidth, physicalHeight));
 
-        // Position: restore from settings if on screen, otherwise default to bottom-right
+        // Position: restore from settings if on screen, otherwise default to top-right
         bool positionRestored = false;
         if (settingsService.HasSavedPosition)
         {
@@ -403,7 +418,7 @@ public sealed partial class MainWindow : Window
             var workArea = GetPrimaryWorkArea();
             int physInset = (int)Math.Round(PanelDefaultInset * scale);
             int defaultX = workArea.Right - physicalWidth - physInset;
-            int defaultY = workArea.Bottom - physicalHeight - physInset;
+            int defaultY = workArea.Top + physInset;
             appWindow.Move(new Windows.Graphics.PointInt32(defaultX, defaultY));
         }
 
@@ -411,20 +426,25 @@ public sealed partial class MainWindow : Window
         if (presenter != null)
         {
             presenter.IsResizable = true;
-            presenter.IsMaximizable = false;
+
+            // Required for the panel's own maximize button, and for the shell gestures that
+            // reach the same state without it (Win+Up, snap layouts, dragging to the top edge).
+            presenter.IsMaximizable = true;
 
             // Keep the window minimizable so the shell sends WM_SYSCOMMAND/
             // SC_MINIMIZE when its taskbar button is clicked while active; the
             // WndProc intercepts that to hide-to-tray instead of minimizing.
-            // No minimize button renders because the title bar is removed below.
+            // The panel's own minimize button bypasses that interception
+            // (see isMinimizingToTaskbar) and genuinely minimizes.
             presenter.IsMinimizable = true;
 
-            // Keep the resize border but remove the system title bar and its
-            // caption buttons; the panel draws its own pin and close buttons.
+            // Keep the resize border but remove the system title bar and its caption buttons;
+            // the panel draws its own pin, minimize, maximize, and close buttons.
             presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false);
         }
 
         appWindow.Changed += OnAppWindowChanged;
+        UpdateMaximizeButtonState();
     }
 
     private void SetWindowIcon(string iconFilePath)
@@ -483,6 +503,18 @@ public sealed partial class MainWindow : Window
     private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
     {
         if (args.DidSizeChange == false && args.DidPositionChange == false)
+        {
+            return;
+        }
+
+        UpdateMaximizeButtonState();
+
+        // A maximized window reports the full work area, and a minimized one reports a position
+        // far off-screen (-32000). Persisting either would overwrite the restore geometry the
+        // user actually chose: the panel would come back full-screen-but-not-maximized, or fail
+        // the on-screen guard at next launch and snap to the default anchor. Only the restored
+        // state describes where the window belongs.
+        if (IsPanelGeometryPersistable() == false)
         {
             return;
         }
@@ -632,13 +664,18 @@ public sealed partial class MainWindow : Window
             }
         }
 
-        if (msg == NativeMethods.WM_SYSCOMMAND && (wParam.ToInt64() & 0xFFF0) == NativeMethods.SC_MINIMIZE)
+        if (msg == NativeMethods.WM_SYSCOMMAND
+            && (wParam.ToInt64() & 0xFFF0) == NativeMethods.SC_MINIMIZE
+            && isMinimizingToTaskbar == false)
         {
             HidePanel();
             return IntPtr.Zero;
         }
 
-        if (msg == NativeMethods.WM_SIZE && wParam.ToInt32() == NativeMethods.SIZE_MINIMIZED && isPanelVisible)
+        if (msg == NativeMethods.WM_SIZE
+            && wParam.ToInt32() == NativeMethods.SIZE_MINIMIZED
+            && isPanelVisible
+            && isMinimizingToTaskbar == false)
         {
             HidePanel();
             return IntPtr.Zero;
@@ -999,7 +1036,10 @@ public sealed partial class MainWindow : Window
             settingsDebounceTimer = null;
         }
 
-        if (appWindow != null && settingsService != null)
+        // Skipped when the window is minimized or maximized for the reason OnAppWindowChanged
+        // gives: neither state's reported geometry is the one the user arranged, and writing it
+        // here would lose the restore geometry on the way out.
+        if (appWindow != null && settingsService != null && IsPanelGeometryPersistable())
         {
             float scale = NativeMethods.GetDpiForWindow(windowHandle) / 96.0f;
             settingsService.WindowWidth = (int)Math.Round(appWindow.Size.Width / scale);
@@ -1075,13 +1115,37 @@ public sealed partial class MainWindow : Window
 
     private bool IsPanelMinimized()
     {
+        return GetPresenterState() == OverlappedPresenterState.Minimized;
+    }
+
+    private bool IsPanelMaximized()
+    {
+        return GetPresenterState() == OverlappedPresenterState.Maximized;
+    }
+
+    /// <summary>
+    /// Whether the window's current size and position are worth writing to settings: true only
+    /// in the restored state, where the geometry is the one the user arranged.
+    /// </summary>
+    private bool IsPanelGeometryPersistable()
+    {
+        return GetPresenterState() == OverlappedPresenterState.Restored;
+    }
+
+    /// <summary>
+    /// The window's presenter state, or <c>Restored</c> when there is no overlapped presenter to
+    /// ask (before <c>ConfigureWindowAppearance</c> has run) so callers treat it as an ordinary
+    /// window rather than a special case.
+    /// </summary>
+    private OverlappedPresenterState GetPresenterState()
+    {
         if (appWindow == null)
         {
-            return false;
+            return OverlappedPresenterState.Restored;
         }
 
         var presenter = appWindow.Presenter as OverlappedPresenter;
-        return presenter != null && presenter.State == OverlappedPresenterState.Minimized;
+        return presenter == null ? OverlappedPresenterState.Restored : presenter.State;
     }
 
     private void ShowPanel()
@@ -1172,6 +1236,62 @@ public sealed partial class MainWindow : Window
         ApplyPinState();
         Panel.SetPinned(isPinned);
         _ = settingsService.SaveAsync();
+    }
+
+    /// <summary>
+    /// Minimizes the panel to the taskbar. Unlike the close button — and unlike a click on the
+    /// taskbar button, which the WndProc turns into a hide-to-tray — this leaves the window in
+    /// the shell where the user put it. <see cref="isMinimizingToTaskbar"/> is held across the
+    /// call because <c>Minimize</c> raises <c>WM_SIZE</c>/<c>SIZE_MINIMIZED</c> synchronously,
+    /// which the WndProc would otherwise turn back into a hide-to-tray.
+    /// </summary>
+    private void OnPanelMinimizeRequested(object sender, EventArgs e)
+    {
+        var presenter = appWindow == null ? null : appWindow.Presenter as OverlappedPresenter;
+        if (presenter == null)
+        {
+            return;
+        }
+
+        isMinimizingToTaskbar = true;
+        try
+        {
+            presenter.Minimize();
+        }
+        finally
+        {
+            isMinimizingToTaskbar = false;
+        }
+    }
+
+    private void OnPanelMaximizeRestoreRequested(object sender, EventArgs e)
+    {
+        var presenter = appWindow == null ? null : appWindow.Presenter as OverlappedPresenter;
+        if (presenter == null)
+        {
+            return;
+        }
+
+        if (presenter.State == OverlappedPresenterState.Maximized)
+        {
+            presenter.Restore();
+        }
+        else
+        {
+            presenter.Maximize();
+        }
+
+        UpdateMaximizeButtonState();
+    }
+
+    /// <summary>
+    /// Points the panel's maximize/restore glyph at the window's live state. Called from
+    /// <see cref="OnAppWindowChanged"/> as well as from the button, so the glyph also tracks
+    /// the shell gestures that maximize or restore without going through the button.
+    /// </summary>
+    private void UpdateMaximizeButtonState()
+    {
+        Panel.SetMaximized(IsPanelMaximized());
     }
 
     private void OnPanelCloseRequested(object sender, EventArgs e)
