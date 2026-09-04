@@ -123,28 +123,53 @@ body {
    widget. Sized against the 15px/1.6 editor metrics; the check glyph is a rotated border corner so
    no image asset is involved. The checked fill uses the system accent (set via the theme message);
    the unchecked border derives from the theme text colour so it works on light and dark.
-   The 8px gap after the box is part of the widget's own width (box drawn by ::before), not a
-   margin: the caret and empty-line measurements use the widget box and ignore margins, so a
-   margin-based gap left the caret flush against the checkbox on an empty task. */
+
+   Two elements, not one. The outer .cm-task-marker is the marker column: the nesting indent, the
+   --checkbox-lead that keeps a line-start caret off the box, the 15px box, and the remainder as the
+   gap before the content text. The inner .cm-task-checkbox is the box itself, and it alone is the
+   click target (see the mousedown handler in build/src/tasks.js) — clicking either gap falls through
+   to CM6, which puts the caret on the nearer side of the widget, so the position before the marker
+   is reachable with the mouse and not only with the arrow keys.
+   Both gaps are part of the widget's own width, not margins: the caret and empty-line measurements
+   use the widget box and ignore margins, so a margin-based gap left the caret flush against the
+   checkbox on an empty task. */
 /* Nesting depth (Docs/Specs/19-CHECKABLE-TASKS.md, Docs/Specs/20-LISTS.md): a marker widget
    swallows the item's leading indent spaces along with the marker itself, so one level of nesting
-   is one extra marker column (23px) of widget width — a child's marker lands exactly under where
-   its parent's text starts. The widget sets --list-depth inline (already clamped to the max depth);
+   is one extra marker column (23px) of widget width — a child's marker column starts exactly where
+   its parent's text starts (the drawn box sits one --checkbox-lead into it, as the bullet's dot
+   does). The widget sets --list-depth inline (already clamped to the max depth);
    the pixel step lives here so every marker metric stays in this file. Depth is added as width and
    offset rather than a margin for the same reason the trailing gap is: the caret and empty-line
    measurements use the widget box and ignore margins. */
-.cm-task-checkbox,
+.cm-task-marker,
 .cm-list-bullet,
 .cm-list-number {
   --list-indent: calc(var(--list-depth, 0) * 23px);
 }
 
-.cm-task-checkbox {
+.cm-task-marker {
+  /* Inset the box from the start of the marker column: a caret at the start of the line (Home, an
+     arrow key, or a click left of the box) draws at the column's left edge and would otherwise sit
+     flush on the box's border. The bullet dot carries the same kind of lead. */
+  --checkbox-lead: 3px;
   display: inline-block;
   position: relative;
   width: calc(23px + var(--list-indent));
   height: 15px;
   vertical-align: -2px;
+}
+
+/* Borderless and padding-free on purpose: the box is drawn by ::before, so this element's padding
+   box — the containing block for the ::after glyph — is exactly the 15px box the glyph is centred
+   in. cursor: pointer against the surrounding `cursor: text` (editorTheme.js) because this element
+   is the box and the box alone: the marker column's gaps keep reading as the editor surface they
+   are. */
+.cm-task-checkbox {
+  position: absolute;
+  left: calc(var(--checkbox-lead) + var(--list-indent));
+  top: 0;
+  width: 15px;
+  height: 15px;
   cursor: pointer;
 }
 
@@ -152,10 +177,7 @@ body {
   content: "";
   position: absolute;
   box-sizing: border-box;
-  left: var(--list-indent);
-  top: 0;
-  width: 15px;
-  height: 15px;
+  inset: 0;
   border: 1.4px solid color-mix(in srgb, var(--text) 60%, transparent);
   border-radius: 3px;
 }
@@ -177,7 +199,7 @@ body {
 .cm-task-checkbox.cm-task-checked::after {
   content: "";
   position: absolute;
-  left: calc(4.85px + var(--list-indent));
+  left: 4.85px;
   top: 2.2px;
   width: 3.5px;
   height: 7px;

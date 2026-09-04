@@ -27,18 +27,38 @@ export const editorTheme = EditorView.theme({
     scrollbarGutter: "stable",
   },
   ".cm-content": {
-    // No padding at all: every edge inset is a margin on the WebView2 element, so it stays put
-    // during scroll (CM6 content padding lives inside the scrolled region and scrolls away).
     padding: "0",
     caretColor: "var(--caret)",
+    // CM6 sets no cursor, and the UA default (auto) only resolves to an I-beam where there is text
+    // under the pointer: the padding strip, the marker widgets, and the space past the end of a
+    // line would all show an arrow. It is all editor surface, so say so once here and let it
+    // inherit; the checkbox and links override it back to a pointer on themselves.
+    cursor: "text",
   },
-  ".cm-line": { padding: "0" },
+  ".cm-line": {
+    // The editor's only horizontal inset, and only because it cannot scroll away: the page never
+    // scrolls horizontally (overflow-x: hidden on the scroller), so this padding is fixed chrome
+    // the way the WebView2's other three margins are. Vertical padding would scroll (it lives
+    // inside the scrolled region), which is why the top and bottom insets stay margins. It is
+    // padding so that the strip between the window edge and the text belongs to the editor:
+    // clicking it keeps focus and puts the caret at the start of that line, where a XAML margin
+    // would have handed the click to the panel and blanked the caret. It matches the WebView2's
+    // retired 16px left margin (BufferPanel.xaml), so the text inset is unchanged.
+    //
+    // On the line and NOT on .cm-content, even though both inset the text identically. CM6 draws
+    // selection rectangles from `contentRect.left + parseInt(getComputedStyle(.cm-line).paddingLeft)`
+    // (rectanglesForRange in @codemirror/view): it reads the *line's* padding and the *content's*
+    // border box, so an inset owned by .cm-content is invisible to that measurement and every
+    // full-line selection band was drawn flush against the window edge with no margin.
+    padding: "0 0 0 16px",
+  },
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "var(--caret)",
     // CM6's base theme offsets the caret by margin-left: -0.6px to straddle the character boundary.
-    // .cm-cursorLayer is a direct child of .cm-scroller, which clips at overflow-x: hidden, so with
-    // no content padding a column-0 caret puts half its 1.2px border outside the clip and all but
-    // disappears. Sit it flush inside the boundary instead; the 0.6px shift is imperceptible.
+    // .cm-cursorLayer is a direct child of .cm-scroller, which clips at overflow-x: hidden, so a
+    // column-0 caret put half its 1.2px border outside the clip and all but disappeared. The
+    // line's left padding now holds it clear of that edge anyway; it stays flush inside the
+    // character boundary because the 0.6px shift is imperceptible either way.
     marginLeft: "0",
   },
   ".cm-selectionBackground": { background: "var(--selection)" },

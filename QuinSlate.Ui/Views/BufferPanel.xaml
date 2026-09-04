@@ -220,16 +220,25 @@
               HorizontalAlignment="Stretch"
               VerticalAlignment="Stretch">
             <Grid x:Name="EditorHostContent">
-                <!-- The editor's inset from every side is a margin on the WebView2, not padding on
-                     the CodeMirror content. Padding lives inside the scrolled region, so a top
-                     padding scrolls away and text rides up to the tabs; a margin is fixed chrome the
-                     window gradient shows through. Top is 14 (the retired 4px container margin +
-                     10px editor top padding); the others target the retired 16px editor padding.
+                <!-- The editor's top, right, and bottom insets are margins on the WebView2, not padding
+                     on the CodeMirror content (the left inset is the exception, below). Vertical
+                     padding lives inside the scrolled region, so a top padding scrolls away and text
+                     rides up to the tabs; a margin is fixed chrome the window gradient shows through.
+                     Top is 14 (the retired 4px container margin + 10px editor top padding); the
+                     others target the retired 16px editor padding.
                      Right is 16 - 12 = 4: the page reserves a 12px scrollbar gutter unconditionally
                      (scrollbar-gutter: stable), so the scrollbar sits inside the 16px gap and the
-                     text inset stays 16 whether or not the buffer scrolls. See editor.css. -->
+                     text inset stays 16 whether or not the buffer scrolls.
+
+                     The LEFT inset is the exception: it is padding on the CodeMirror content instead
+                     (editorTheme.js), so the WebView2 runs all the way to the panel edge. As a margin
+                     that strip was dead XAML surface — clicking it moved focus out of the WebView2 and
+                     the caret vanished. As content padding the same strip is editor surface: the click
+                     keeps focus and lands the caret at the start of that line. Nothing scrolls away
+                     with it, because the page never scrolls horizontally (overflow-x: hidden). See
+                     editor.css and WebEditor/build/src/editorTheme.js. -->
                 <WebView2 x:Name="EditorWebView"
-                          Margin="16,14,4,16"
+                          Margin="0,14,4,16"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch" />
                 <!-- Flat mid-tone cover shown ON TOP of the WebView2 at startup so the black
@@ -238,7 +247,7 @@
                      imperceptible. IsHitTestVisible=False so it never blocks input if it lingers.
                      Must track the WebView2's margin exactly, or the swapchain peeks out. -->
                 <Border x:Name="EditorStartupCover"
-                        Margin="16,14,4,16"
+                        Margin="0,14,4,16"
                         IsHitTestVisible="False"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch" />

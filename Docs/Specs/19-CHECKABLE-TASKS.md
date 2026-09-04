@@ -81,13 +81,20 @@ levels.
 ## Rendering
 
 - The marker characters **and the indent spaces in front of them** are replaced
-  by one checkbox widget (`.cm-task-checkbox`); the caret can never sit inside
-  the prefix.
+  by one marker widget (`.cm-task-marker`); the caret can never sit inside the
+  prefix, only before or after the whole widget.
+- The widget column is the nesting indent, a small lead gap, the 15px box
+  (`.cm-task-checkbox`, the inner element), and the gap before the content text.
+  The lead gap keeps a caret at the start of the line off the box's border, and
+  only the box toggles on click — a click in either gap places the caret before
+  or after the marker, so that position is reachable with the mouse and not only
+  with the arrow keys.
 - Unchecked: an empty rounded square whose border derives from the theme text
   colour. Checked: filled with the system accent (`--accent`, sent by the host
   in the existing `theme` message) with a white check glyph.
 - One depth level renders as one extra 23px marker column of widget width, so a
-  child's checkbox lands exactly under where its parent's text starts. The
+  child's marker column starts exactly where its parent's text starts (the box
+  itself sits one lead gap into that column, like the bullet's dot). The
   widget carries its depth in the inline `--list-depth` custom property; the
   pixel step lives in `editor.css` with the rest of the marker metrics. Depth is
   added as width and offset rather than a margin, because the caret and

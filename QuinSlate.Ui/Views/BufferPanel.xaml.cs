@@ -168,6 +168,12 @@ public sealed partial class BufferPanel : UserControl
     private LimitNotice limitNotice;
 
     /// <summary>
+    /// Holds keyboard focus in the editor when a click lands on chrome that has nothing focusable
+    /// under it.
+    /// </summary>
+    private EditorFocusGuard editorFocusGuard;
+
+    /// <summary>
     /// True while a one-shot retry of <see cref="ApplyDitheredBackground"/> is pending because the
     /// editor host was not laid out yet (see <see cref="ScheduleDitheredRetry"/>).
     /// </summary>
@@ -395,6 +401,7 @@ public sealed partial class BufferPanel : UserControl
         editorHost.LimitReached += OnEditorLimitReached;
 
         limitNotice = new LimitNotice(LimitNoticeSurface);
+        editorFocusGuard = new EditorFocusGuard(EditorWebView, BufferTabView);
 
         // A flat mid-tone stands in on every surface until the dithered mesh swaps in (the window
         // via the fallback brush here; the editor via the WebView2 DefaultBackgroundColor set on

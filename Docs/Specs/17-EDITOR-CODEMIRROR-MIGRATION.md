@@ -322,6 +322,12 @@ be identical regardless of where focus is:
   opens the flyout at that position with today's enablement rules (Undo/Redo
   per history state, Cut/Copy require a selection, Paste always enabled) and
   routes actions back over the bridge.
+- **A right press never moves the caret or drops the selection.** Chromium's
+  default for a contenteditable is to collapse the caret at the click, so
+  right-clicking outside a selection threw it away before the menu could offer
+  to cut or copy it; the page suppresses that default (`editorSetup.js`) and
+  restores the focus the default carried. The menu still opens at the click
+  position — only the selection is left alone.
 - Touch/pen selection must not surface Chromium's selection handles' menu
   (parity with `SelectionFlyout = null`); suppress or match — verify.
 

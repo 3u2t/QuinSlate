@@ -35,6 +35,8 @@ QuinSlate.Ui/WebEditor/
     │   ├── indent.js         # Tab/Shift+Tab: list nesting, and plain-line indent
     │   ├── tasks.js          # checkable tasks: widget, decorations, keymap
     │   ├── lists.js          # bullet/numbered items: widgets, keymap, renumber filter
+    │   ├── links.js          # URL mark decoration + click-to-open
+    │   ├── scrollerFocus.js  # returns focus to the content when a scrollbar press takes it
     │   ├── panelShortcuts.js # panel keymap forwarded to the host
     │   ├── editorTheme.js    # the CM6 theme (fonts, caret, selection)
     │   ├── editorSetup.js    # baseExtensions, makeState, view creation + DOM listeners
@@ -133,6 +135,49 @@ QuinSlate.Ui/WebEditor/
   `"false"`). Do not "restore" `autocorrect: "off"` for editor hygiene. See
   [03-EDITOR-OS-TEXT-INPUT.md](03-EDITOR-OS-TEXT-INPUT.md) and
   [05-EMOJI-PANEL-AUTOCORRECT-OFF-DROP.md](../Investigations/05-EMOJI-PANEL-AUTOCORRECT-OFF-DROP.md).
+
+- **Three separate layers can blank the caret, and they look identical on screen.**
+  A click on the panel's own chrome does not have to reach the page to blur the
+  editor:
+  1. *Win32* — focus leaves the WebView2's `Chrome_WidgetWin_0` child window for
+     the frame or `InputSiteWindowClass`.
+  2. *XAML* — focus stays inside the window but leaves the `WebView2` element.
+     Clicking chrome with nothing interactive under it does **not** clear focus to
+     null: XAML walks up to the nearest focusable ancestor, which is the TabView
+     template's `ScrollViewer`. The WebView2 wrapper then tells Chromium it lost
+     focus. `Components/EditorFocusGuard.cs` cancels that move. Two shapes only,
+     and pointer input only: a null target, or a `ScrollViewer` that is either
+     inside the tab strip or **detached** — the strip's own ScrollViewer arrives
+     with `VisualTreeHelper.GetParent` null, so a subtree test alone does not
+     match it (scoping the guard to `BufferTabView` alone put 20 of 48 swept
+     spots back to losing focus). A flyout or menu presenter's ScrollViewer is
+     properly parented in its popup tree, so it still takes focus normally, as
+     do all real controls.
+  3. *Chromium* — no XAML event at all: pressing the editor's own scrollbar focuses
+     the scrollable element, moving DOM focus from `.cm-content` to `.cm-scroller`.
+     A native scrollbar press dispatches nothing to the page, so there is no
+     mousedown to `preventDefault`; `build/src/scrollerFocus.js` undoes it after the
+     fact by returning focus to the content.
+
+  Tell them apart before fixing anything: read `GetGUIThreadInfo(...).hwndFocus`
+  after a synthetic click (see
+  [02-SYNTHETIC-INPUT-VERIFICATION.md](02-SYNTHETIC-INPUT-VERIFICATION.md)) and pair
+  it with temporary Debug lines on both sides — host `LosingFocus`/`LostFocus`, page
+  `focusin`/`focusout`. Logging the *ancestor chain* of `NewFocusedElement`, not just
+  its type, is what names the offending element.
+- **The editor's left inset is line padding, not a WebView2 margin.** The other
+  three sides are margins on the element (`BufferPanel.xaml`) because CM6 content
+  padding lives inside the scrolled region and a vertical inset would scroll away.
+  The left one cannot — the page never scrolls horizontally — so it is
+  `padding-left` in `editorTheme.js`, which makes the strip between the window edge
+  and the text part of the editor: a click there keeps focus and lands the caret at
+  the start of the line instead of handing the click to XAML.
+  It sits on **`.cm-line`, not `.cm-content`** — the two inset the text identically,
+  but CM6 computes the left edge of its selection rectangles as
+  `contentRect.left + parseInt(getComputedStyle('.cm-line').paddingLeft)`
+  (`rectanglesForRange` in `@codemirror/view`). It reads the *line's* padding against
+  the *content's* border box, so an inset owned by `.cm-content` is invisible to that
+  measurement and every full-line selection band draws flush against the window edge.
 
 ## Testing
 

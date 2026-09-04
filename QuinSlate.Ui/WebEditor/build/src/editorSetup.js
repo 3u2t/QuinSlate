@@ -13,10 +13,13 @@ import { detectCalc } from "./inlineCalc.js";
 import { taskPlugin, taskKeymap } from "./tasks.js";
 import { listPlugin, listKeymap, listRenumber } from "./lists.js";
 import { linkPlugin } from "./links.js";
+import { scrollerFocusPlugin } from "./scrollerFocus.js";
 import { indentKeymap } from "./indent.js";
 import { panelKeymap } from "./panelShortcuts.js";
 import { queueSync, flushSync } from "./contentSync.js";
 import { editorTheme } from "./editorTheme.js";
+
+const SECONDARY_BUTTON = 2;
 
 const baseExtensions = [
   history(),
@@ -35,6 +38,8 @@ const baseExtensions = [
   listRenumber,
   // Marks URLs anywhere in the text; no keymap, and it never touches the document.
   linkPlugin,
+  // Returns focus to the content when a scrollbar press moves it to the scroller.
+  scrollerFocusPlugin,
   EditorView.lineWrapping,
   drawSelection(),
   editorTheme,
@@ -76,6 +81,20 @@ export function createEditor() {
 
   // The result highlight is one animation at a time and never plays on load; it
   // is only started from applyCalcResult, so nothing to do here.
+
+  // A right press opens the menu without touching the selection. Chromium's default for a
+  // contenteditable is to collapse the caret at the click first, so right-clicking outside a
+  // selection threw that selection away before the menu could offer to cut or copy it. CM6 itself
+  // only starts a mouse selection for the primary button, so suppressing the default is enough —
+  // but that default also carried the focus, which view.focus() puts back.
+  view.contentDOM.addEventListener("mousedown", (event) => {
+    if (event.button !== SECONDARY_BUTTON) {
+      return;
+    }
+
+    event.preventDefault();
+    view.focus();
+  });
 
   view.contentDOM.addEventListener("contextmenu", (event) => {
     event.preventDefault();

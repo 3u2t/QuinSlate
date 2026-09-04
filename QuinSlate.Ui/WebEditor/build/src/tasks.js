@@ -24,6 +24,10 @@ const TASK_SHORTHAND_PREFIXES = ["[]", "[ ]"];
 const TASK_CHECKED_CHAR = "x";
 const TASK_UNCHECKED_CHAR = " ";
 const DEPTH_PROPERTY = "--list-depth";
+const MARKER_CLASS = "cm-task-marker";
+const CHECKBOX_CLASS = "cm-task-checkbox";
+const CHECKBOX_CHECKED_CLASS = "cm-task-checked";
+const PRIMARY_BUTTON = 0;
 
 // Returns the item descriptor when the line carries the task marker, null otherwise.
 function taskOfLine(line) {
@@ -42,16 +46,24 @@ class TaskCheckboxWidget extends WidgetType {
     return other.checked === this.checked && other.depth === this.depth;
   }
 
+  // Two elements (editor.css): the outer marker span is the whole column — nesting
+  // indent, the lead gap, the box, the gap before the content — and the inner span
+  // is the box itself. Only the box is the click target, so a click in either gap
+  // reaches CM6 and places the caret on the nearer side of the widget.
   toDOM() {
+    const marker = document.createElement("span");
+    marker.className = MARKER_CLASS;
+    marker.style.setProperty(DEPTH_PROPERTY, String(this.depth));
+    marker.setAttribute("aria-hidden", "true");
     const box = document.createElement("span");
-    box.className = this.checked ? "cm-task-checkbox cm-task-checked" : "cm-task-checkbox";
-    box.style.setProperty(DEPTH_PROPERTY, String(this.depth));
-    box.setAttribute("aria-hidden", "true");
-    return box;
+    box.className = this.checked ? CHECKBOX_CLASS + " " + CHECKBOX_CHECKED_CLASS : CHECKBOX_CLASS;
+    marker.appendChild(box);
+    return marker;
   }
 
   ignoreEvent() {
-    // Let mousedown reach the plugin's handler below, which performs the toggle.
+    // Let mousedown reach the plugin's handler below, which performs the toggle (and,
+    // for a click that misses the box, CM6's own selection handling).
     return false;
   }
 }
@@ -129,12 +141,27 @@ export const taskPlugin = ViewPlugin.fromClass(
       }),
     ],
     eventHandlers: {
+      // Only a primary press on the drawn box toggles. The gaps on either side of it
+      // belong to the widget too, but leaving them alone is what makes the position
+      // before the marker clickable instead of arrow-keys-only; and a right press has
+      // to fall through, or it would toggle the task on its way to the context menu.
       mousedown(event, view) {
         const target = event.target;
-        if (target instanceof Element && target.classList.contains("cm-task-checkbox")) {
-          return toggleTaskAt(view, view.posAtDOM(target));
+        if (event.button !== PRIMARY_BUTTON || !(target instanceof Element)) {
+          return false;
         }
-        return false;
+        if (!target.classList.contains(CHECKBOX_CLASS)) {
+          return false;
+        }
+        const marker = target.closest("." + MARKER_CLASS);
+        if (!toggleTaskAt(view, view.posAtDOM(marker == null ? target : marker))) {
+          return false;
+        }
+        // Returning true makes CM6 preventDefault the press, which also cancels the
+        // browser's focus-on-click: without this the caret would stay away whenever the
+        // toggle happened while focus sat somewhere else (a caption button, a tab).
+        view.focus();
+        return true;
       },
     },
   }
