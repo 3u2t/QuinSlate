@@ -82,12 +82,10 @@ border stays. The panel draws its own four title-bar buttons at the top right, l
 | Maximize / Restore | Toggles maximized. The glyph tracks the live window state, so shell gestures that maximize without the button (Win+Up, snap layouts, dragging to the top edge) keep it correct |
 | Close | Hides the panel to the tray. The app keeps running |
 
-Minimize is the one place where "minimize" does not mean "hide to tray". Every *other* route
-into minimize still hides to the tray — notably a click on the taskbar button while the panel
-is active, which the shell delivers as `WM_SYSCOMMAND`/`SC_MINIMIZE`, and "Show Desktop"
-(Win+D), which delivers `WM_SIZE`/`SIZE_MINIMIZED`. `MainWindow` intercepts both and calls
-`HidePanel`; the panel's own minimize button raises a flag for the duration of its
-`OverlappedPresenter.Minimize()` call so that interception stands aside.
+"Minimize" never means "hide to tray". Every route into minimize — the panel's own minimize
+button, a click on the taskbar button while the panel is active, "Show Desktop" (Win+D) —
+leaves the window minimized as a taskbar button, and the hotkey or a tray click restores it.
+Hiding to the tray is reached only through the close button, the tray icon, and the hotkey.
 
 ## Out of scope
 

@@ -122,12 +122,6 @@ internal static class NativeMethods
 
     public const uint WM_NCACTIVATE = 0x0086;
 
-    public const uint WM_SIZE = 0x0005;
-    public const int SIZE_MINIMIZED = 1;
-
-    public const uint WM_SYSCOMMAND = 0x0112;
-    public const int SC_MINIMIZE = 0xF020;
-
     public const uint WM_ERASEBKGND = 0x0014;
 
     public static readonly IntPtr IDI_APPLICATION = new IntPtr(32512);

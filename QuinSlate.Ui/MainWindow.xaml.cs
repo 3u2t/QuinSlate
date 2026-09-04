@@ -120,12 +120,6 @@ public sealed partial class MainWindow : Window
     private bool isInitialised;
     private bool isContextMenuOpen;
 
-    // Set only while the title bar's own minimize button drives the window down, so the
-    // hide-to-tray interception of SC_MINIMIZE / WM_SIZE below stands aside and the window
-    // really minimizes to the taskbar. The interception still governs every other route into
-    // minimize (notably a click on the taskbar button while the panel is active).
-    private bool isMinimizingToTaskbar;
-
     /// <summary>
     /// Constructs the window. Call <see cref="Initialise"/> immediately
     /// afterwards to wire services and Win32 plumbing.
@@ -431,11 +425,9 @@ public sealed partial class MainWindow : Window
             // reach the same state without it (Win+Up, snap layouts, dragging to the top edge).
             presenter.IsMaximizable = true;
 
-            // Keep the window minimizable so the shell sends WM_SYSCOMMAND/
-            // SC_MINIMIZE when its taskbar button is clicked while active; the
-            // WndProc intercepts that to hide-to-tray instead of minimizing.
-            // The panel's own minimize button bypasses that interception
-            // (see isMinimizingToTaskbar) and genuinely minimizes.
+            // Every route into minimize — the panel's own minimize button, a click on the
+            // taskbar button while the panel is active, "Show Desktop" — leaves the window as a
+            // taskbar button. Hiding to the tray is the close button's and the tray icon's job.
             presenter.IsMinimizable = true;
 
             // Keep the resize border but remove the system title bar and its caption buttons;
@@ -662,23 +654,6 @@ public sealed partial class MainWindow : Window
                 TogglePanelVisibility();
                 return IntPtr.Zero;
             }
-        }
-
-        if (msg == NativeMethods.WM_SYSCOMMAND
-            && (wParam.ToInt64() & 0xFFF0) == NativeMethods.SC_MINIMIZE
-            && isMinimizingToTaskbar == false)
-        {
-            HidePanel();
-            return IntPtr.Zero;
-        }
-
-        if (msg == NativeMethods.WM_SIZE
-            && wParam.ToInt32() == NativeMethods.SIZE_MINIMIZED
-            && isPanelVisible
-            && isMinimizingToTaskbar == false)
-        {
-            HidePanel();
-            return IntPtr.Zero;
         }
 
         if (msg == NativeMethods.WM_QUINSLATE_ACTIVATE)
@@ -1239,11 +1214,9 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Minimizes the panel to the taskbar. Unlike the close button — and unlike a click on the
-    /// taskbar button, which the WndProc turns into a hide-to-tray — this leaves the window in
-    /// the shell where the user put it. <see cref="isMinimizingToTaskbar"/> is held across the
-    /// call because <c>Minimize</c> raises <c>WM_SIZE</c>/<c>SIZE_MINIMIZED</c> synchronously,
-    /// which the WndProc would otherwise turn back into a hide-to-tray.
+    /// Minimizes the panel to the taskbar. Unlike the close button, which hides the panel to the
+    /// tray, this leaves the window in the shell where the user put it — the same place a click
+    /// on the taskbar button leaves it.
     /// </summary>
     private void OnPanelMinimizeRequested(object sender, EventArgs e)
     {
@@ -1253,15 +1226,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        isMinimizingToTaskbar = true;
-        try
-        {
-            presenter.Minimize();
-        }
-        finally
-        {
-            isMinimizingToTaskbar = false;
-        }
+        presenter.Minimize();
     }
 
     private void OnPanelMaximizeRestoreRequested(object sender, EventArgs e)
