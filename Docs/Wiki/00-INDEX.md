@@ -1,6 +1,6 @@
 # Wiki index
 
-> _Last updated: 2026-07-14_
+> _Last updated: 2026-09-07_
 
 Durable, cross-cutting knowledge that is not a spec, a decision, or the record of a single
 investigation: platform behaviour worth knowing before you touch an area, and techniques that took
@@ -25,3 +25,4 @@ Use the other folders when they fit better:
 | 05 | [Background gradient: the TPDF-dithered four-corner mesh](05-BACKGROUND-GRADIENT-DITHERING.md) | touching the window/editor background, `DitheredGradientBrushFactory`, or the `AppGradient*` resources |
 | 06 | [Web editor: the CodeMirror 6 bundle and its build](06-WEB-EDITOR-BUNDLE.md) | touching anything under `QuinSlate.Ui/WebEditor/` or the `EditorHost` bridge |
 | 07 | [Win32 gotchas](07-WIN32-GOTCHAS.md) | touching `Interop/`, the tray icon, hotkeys, or the clipboard |
+| 08 | [Test runner: the `global.json` MTP opt-in](08-TEST-RUNNER-MTP.md) | `dotnet test` erroring out about VSTest, or touching `global.json` / the test project's packages |
