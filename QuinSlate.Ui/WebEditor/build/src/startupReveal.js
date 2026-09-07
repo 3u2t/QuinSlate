@@ -5,11 +5,17 @@
 import { postToHost } from "./hostBridge.js";
 import { getView } from "./editorContext.js";
 import { playEntrance } from "./entrance.js";
+import { logEditorGeometry } from "./clickProbe.js";
 
 // Past the 180 ms reveal entrance plus a settle frame: the entrance ending rebuilds the
 // compositor layers, which itself re-anchors child animations, so the caret hand-off waits
 // until that has passed.
 const CARET_RELEASE_DELAY_MS = 240;
+
+// Past the caret hand-off, so the probe's geometry read (a forced layout) lands in neither the
+// entrance's frames nor the blink release's — see
+// Docs/Investigations/07-EDITOR-CLICK-CARET-LINE-OFFSET.md.
+const GEOMETRY_LOG_DELAY_MS = 500;
 
 // The blink hold must be active from the first frame; the host releases it at first visibility.
 export function applyCaretHold() {
@@ -51,6 +57,7 @@ export function beginRevealEntrance() {
       // The caret fades in with the entrance, held solid; hand it to the live blink cycle
       // only after the entrance has finished.
       setTimeout(resetCaretBlink, CARET_RELEASE_DELAY_MS);
+      setTimeout(() => logEditorGeometry(getView()), GEOMETRY_LOG_DELAY_MS);
     });
   });
 }

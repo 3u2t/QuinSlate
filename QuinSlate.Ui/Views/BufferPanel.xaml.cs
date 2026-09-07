@@ -174,6 +174,12 @@ public sealed partial class BufferPanel : UserControl
     private EditorFocusGuard editorFocusGuard;
 
     /// <summary>
+    /// Logs where each press lands on the editor element, to be read against the page's own click
+    /// log (see <c>Docs/Investigations/07-EDITOR-CLICK-CARET-LINE-OFFSET.md</c>). Diagnostic only.
+    /// </summary>
+    private EditorPointerProbe editorPointerProbe;
+
+    /// <summary>
     /// True while a one-shot retry of <see cref="ApplyDitheredBackground"/> is pending because the
     /// editor host was not laid out yet (see <see cref="ScheduleDitheredRetry"/>).
     /// </summary>
@@ -402,6 +408,7 @@ public sealed partial class BufferPanel : UserControl
 
         limitNotice = new LimitNotice(LimitNoticeSurface);
         editorFocusGuard = new EditorFocusGuard(EditorWebView, BufferTabView);
+        editorPointerProbe = new EditorPointerProbe(EditorWebView);
 
         // A flat mid-tone stands in on every surface until the dithered mesh swaps in (the window
         // via the fallback brush here; the editor via the WebView2 DefaultBackgroundColor set on

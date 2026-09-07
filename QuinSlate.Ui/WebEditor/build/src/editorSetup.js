@@ -20,6 +20,7 @@ import { indentKeymap } from "./indent.js";
 import { panelKeymap } from "./panelShortcuts.js";
 import { queueSync, flushSync } from "./contentSync.js";
 import { editorTheme } from "./editorTheme.js";
+import { registerClickProbe } from "./clickProbe.js";
 
 const SECONDARY_BUTTON = 2;
 
@@ -118,4 +119,9 @@ export function createEditor() {
   });
 
   view.contentDOM.addEventListener("blur", flushSync);
+
+  // Content-free click-coordinate logging for the caret/click line-offset hunt; paired with the
+  // host-side press log in Components/EditorPointerProbe.cs. See
+  // Docs/Investigations/07-EDITOR-CLICK-CARET-LINE-OFFSET.md.
+  registerClickProbe(view);
 }
