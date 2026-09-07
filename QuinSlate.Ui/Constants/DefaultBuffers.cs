@@ -8,11 +8,13 @@ public static class DefaultBuffers
     private const string Tab1 =
         "Five tabs, no cloud, no save button. Your words never leave your machine.\r\n" +
         "\r\n" +
-        "Ctrl+Shift+Q       Makes the app vanish and reappear from anywhere\r\n" +
-        "Ctrl+Tab(+Shift)   Next(previous) tab\r\n" +
-        "Ctrl+1…5           Jump to a tab\r\n" +
+        "`Ctrl+Shift+Q`       Makes the app vanish and reappear from anywhere\r\n" +
+        "`Ctrl+Tab(+Shift)`   Next(previous) tab\r\n" +
+        "`Ctrl+1…5`           Jump to a tab\r\n" +
         "\r\n" +
-        "It also does math. Try it. End the line below with '='\r\n" +
+        "It reads markdown as you type — **bold**, *italic*, ~~struck~~, and headings.\r\n" +
+        "\r\n" +
+        "It also does math. Try it. End the line below with `=`\r\n" +
         "2 * (13 + 8) \r\n" +
         "\r\n" +
         "Rename any tab. Swap any emoji. But there are five, and there will only ever be five. Five fits in your head. That's the point.\r\n" +
@@ -53,8 +55,10 @@ public static class DefaultBuffers
         "Close the app. Restart Windows. Pull the plug.\r\n" +
         "It's all still here when you toggle back in.\r\n" +
         "\r\n" +
+        "---\r\n" +
+        "\r\n" +
         "That's the tour. Five tabs, one hotkey, zero ceremony.\r\n" +
-        "Now delete all of this and make it yours.\r\n";
+        "Now delete all of this and make it **yours**.\r\n";
 
     /// <summary>
     /// Gets the default content for the buffer at the specified 1-based index.
