@@ -1,6 +1,6 @@
 # Clickable links
 
-> _Last updated: 2026-07-16_
+> _Last updated: 2026-09-04_
 
 The third formatting feature of the CodeMirror editor, alongside
 [checkable tasks](19-CHECKABLE-TASKS.md) and [lists](20-LISTS.md): a URL in a
@@ -45,6 +45,25 @@ sentence rather than a URL are dropped:
 Trailing `.,;:!?'"` always drop. A closing `)`, `]`, `}`, or `>` drops only when
 the candidate does not open it too, so a Wikipedia URL survives and a
 parenthesised aside does not keep its paren.
+
+A trailing `*` or `~` drops only when a run of that character is **still open**
+where the URL starts — that is the run it is closing
+([23-MARKDOWN-FORMATTING.md](23-MARKDOWN-FORMATTING.md)), not part of the URL:
+
+| Text | Link |
+|---|---|
+| `**see https://example.com**` | `https://example.com` — the run is open at the URL |
+| `https://s3.amazonaws.com/bucket/*` | the whole thing — no run was ever opened |
+| `fix *urgent* — see https://host/bucket/*` | the whole URL — that run closed again before it |
+| `2 * 3 and https://host/glob/*` | the whole URL — a lone `*` between spaces opens nothing |
+| `https://example.com/a*b/c` | the whole thing — the asterisk is inside the path |
+
+The test has to look at the line rather than the candidate, because the run opens
+outside the URL. It is the same open/close rule emphasis itself uses, so a `*`
+that could not start a run — arithmetic, a bullet-like `* ` — never counts, and a
+run that closed before the URL does not either. `runDelimiters.js` holds those
+predicates for both modules: `links.js` and `inlineScan.js` must agree on them and
+neither may import the other.
 
 ## Behaviour
 

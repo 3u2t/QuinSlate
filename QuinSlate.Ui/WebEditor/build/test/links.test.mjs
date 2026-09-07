@@ -138,3 +138,62 @@ describe("links while being typed", () => {
     assert.deepEqual(hrefs("https://example.com"), ["https://example.com"]);
   });
 });
+
+describe("markdown delimiters at the end of a URL", () => {
+  it("drops trailing asterisks so a bolded URL still closes its run", () => {
+    const links = findLinks("**see https://example.com**");
+    assert.deepEqual(links.map((link) => link.href), ["https://example.com"]);
+    assert.equal(links[0].to, 25);
+  });
+
+  it("drops a trailing tilde run", () => {
+    assert.deepEqual(
+      findLinks("~~https://example.com~~").map((link) => link.href),
+      ["https://example.com"]
+    );
+  });
+
+  it("keeps an asterisk inside the path", () => {
+    assert.deepEqual(
+      findLinks("https://example.com/a*b/c").map((link) => link.href),
+      ["https://example.com/a*b/c"]
+    );
+  });
+
+  it("keeps a trailing wildcard when nothing on the line opened a run", () => {
+    assert.deepEqual(hrefs("https://s3.amazonaws.com/bucket/*"), [
+      "https://s3.amazonaws.com/bucket/*",
+    ]);
+  });
+
+  it("keeps a trailing tilde when nothing on the line opened a run", () => {
+    assert.deepEqual(hrefs("https://example.com/file.txt~"), ["https://example.com/file.txt~"]);
+  });
+
+  it("still drops the delimiter when the run is open where the URL starts", () => {
+    assert.deepEqual(hrefs("a *https://example.com/x*"), ["https://example.com/x"]);
+  });
+
+  it("keeps a trailing wildcard when the earlier run closed again before the URL", () => {
+    assert.deepEqual(hrefs("- [ ] fix *urgent* — see https://s3.amazonaws.com/bucket/*"), [
+      "https://s3.amazonaws.com/bucket/*",
+    ]);
+  });
+
+  it("keeps a trailing wildcard after an asterisk that is arithmetic, not a delimiter", () => {
+    assert.deepEqual(hrefs("2 * 3 and https://example.com/glob/*"), [
+      "https://example.com/glob/*",
+    ]);
+  });
+
+  it("keeps a trailing tilde when an earlier tilde could not open a run", () => {
+    assert.deepEqual(hrefs("~ https://example.com/a~"), ["https://example.com/a~"]);
+  });
+
+  it("drops the delimiter for the second URL too when one run stays open across both", () => {
+    assert.deepEqual(hrefs("*https://example.com/a and https://example.com/b*"), [
+      "https://example.com/a",
+      "https://example.com/b",
+    ]);
+  });
+});

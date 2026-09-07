@@ -11,6 +11,8 @@
 
 import { Decoration, ViewPlugin } from "@codemirror/view";
 import { postToHost } from "./hostBridge.js";
+import { findCodeSpans, overlapsAny } from "./codeSpans.js";
+import { EMPHASIS_CHAR, STRIKE_CHAR, openRunScanner } from "./runDelimiters.js";
 
 const LINK_CLASS = "cm-link";
 const HREF_ATTRIBUTE = "data-href";
@@ -28,6 +30,13 @@ const LINK_PATTERN = /\b(?:https?:\/\/|mailto:)[^\s]+/gi;
 const COMPLETE_LINK = /^(?:https?:\/\/|mailto:)[^\s]+$/i;
 
 const TRAILING_PUNCTUATION = ".,;:!?'\"";
+
+// Markdown run delimiters (Docs/Specs/23-MARKDOWN-FORMATTING.md). A trailing one usually closes a
+// run rather than belonging to the URL — "**see https://example.com**" must link the URL and still
+// read as bold — but only when a run is still open where the URL starts. Merely appearing earlier
+// in the line is not enough: "fix *urgent* — see https://host/bucket/*" has closed its run again by
+// then, and "2 * 3 … /*" never opened one, and both must keep the wildcard in the href.
+const RUN_DELIMITERS = EMPHASIS_CHAR + STRIKE_CHAR;
 const CLOSING_BRACKETS = { ")": "(", "]": "[", "}": "{", ">": "<" };
 
 function countOf(text, char) {
@@ -43,14 +52,23 @@ function countOf(text, char) {
 // "(see https://example.com)." ends at the domain: the period and paren close
 // the sentence, not the URL. But the parens of
 // "https://en.wikipedia.org/wiki/Foo_(bar)" are the URL's own, so a closing
-// bracket survives when the candidate opens it too.
-function trimTrailing(candidate) {
+// bracket survives when the candidate opens it too. A run delimiter cannot be judged from the
+// candidate alone, so `runs` carries the line's open-run state and `index` says where in the line
+// to ask about.
+function trimTrailing(candidate, runs, index) {
   let end = candidate.length;
   while (end > 0) {
     const char = candidate[end - 1];
     if (TRAILING_PUNCTUATION.indexOf(char) >= 0) {
       end--;
       continue;
+    }
+    if (RUN_DELIMITERS.indexOf(char) >= 0) {
+      if (runs.isOpenBefore(char, index)) {
+        end--;
+        continue;
+      }
+      break;
     }
     const opener = CLOSING_BRACKETS[char];
     if (opener != null) {
@@ -68,10 +86,11 @@ function trimTrailing(candidate) {
 // Every link in one line of text, as offsets into that line.
 export function findLinks(text) {
   const links = [];
+  const runs = openRunScanner(text);
   LINK_PATTERN.lastIndex = 0;
   let match = LINK_PATTERN.exec(text);
   while (match != null) {
-    const href = trimTrailing(match[0]);
+    const href = trimTrailing(match[0], runs, match.index);
     if (COMPLETE_LINK.test(href)) {
       links.push({ from: match.index, to: match.index + href.length, href });
     }
@@ -86,7 +105,14 @@ function buildLinkDecorations(view) {
     let pos = range.from;
     while (pos <= range.to) {
       const line = view.state.doc.lineAt(pos);
+      // Inline code wins over every other inline construct
+      // (Docs/Specs/23-MARKDOWN-FORMATTING.md): a URL inside a code span is literal text, not a
+      // link, so it neither colours nor opens.
+      const codeSpans = findCodeSpans(line.text);
       for (const link of findLinks(line.text)) {
+        if (overlapsAny(codeSpans, link.from, link.to)) {
+          continue;
+        }
         marks.push(
           Decoration.mark({
             class: LINK_CLASS,

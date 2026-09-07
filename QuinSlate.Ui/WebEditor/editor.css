@@ -213,6 +213,90 @@ body {
   opacity: 0.55;
 }
 
+/* Markdown formatting (Docs/Specs/23-MARKDOWN-FORMATTING.md): headings, bold, italic,
+   strikethrough, inline code, and horizontal rules. Every marker stays in the document text and is
+   hidden by a replace decoration; .cm-md-marker is what those same characters get instead on the
+   line the selection is on. Dimmed rather than full strength, so an edited line still reads as
+   formatted. All colours derive from --text, so light and dark come free with the theme message. */
+.cm-md-marker {
+  opacity: 0.45;
+  /* Cascadia Code ligates "(*" and "*)". Chromium shapes ligatures across inline element
+     boundaries, so a revealed "(*" ligated the plain "(" with the marker span and painted the
+     asterisk into the wrong run — and hiding the marker again left that glyph behind, overlapping
+     the first content character until the buffer was reloaded. Turning contextual alternates off
+     for the marker breaks the shaping run at exactly the boundary that moves. */
+  font-feature-settings: "calt" 0, "liga" 0;
+}
+
+/* Headings flatten past H3: a panel this size has no room for six legible tiers, and inventing
+   them would produce sizes that read as noise rather than hierarchy. H4-H6 are still recognised,
+   so a pasted document shows no raw "####" — they just render at body size with weight only.
+   line-height overrides the theme's 1.6 (editorTheme.js): at 22px that ratio opens a gap wide
+   enough to read as a paragraph break. */
+.cm-md-h1,
+.cm-md-h2,
+.cm-md-h3,
+.cm-md-h4,
+.cm-md-h5,
+.cm-md-h6 {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.cm-md-h1 {
+  font-size: 22px;
+}
+
+.cm-md-h2 {
+  font-size: 19px;
+}
+
+.cm-md-h3 {
+  font-size: 17px;
+}
+
+.cm-md-bold {
+  font-weight: 700;
+}
+
+/* Cascadia Code ships an italic face on Windows 11; where the stack falls through to one that does
+   not, Chromium synthesises an oblique. Both are acceptable and neither needs detecting. */
+.cm-md-italic {
+  font-style: italic;
+}
+
+/* line-through here, unlike .cm-task-done above, which dims by deliberate choice. A struck run
+   inside a done task shows both, and that is correct — they mean different things. */
+.cm-md-strike {
+  text-decoration: line-through;
+}
+
+/* Background only, no horizontal padding: padding on an inline mark shifts every glyph after it off
+   the monospace grid, and CM6 measures selection rectangles from computed line padding (see the
+   .cm-line comment in editorTheme.js), so it would skew the selection bands too. The editor is
+   already monospace, so the tint carries the whole signal a font change would otherwise provide. */
+.cm-md-code {
+  background-color: color-mix(in srgb, var(--text) 14%, transparent);
+  border-radius: 2px;
+}
+
+/* The "---" line, drawn rather than set as a repeated glyph — the same call .cm-list-bullet makes
+   for its dot. It replaces the whole line, so it takes the content width; the line's own 16px left
+   padding keeps it off the window edge. */
+.cm-md-rule {
+  display: inline-block;
+  width: 100%;
+  /* Zero height, so the border IS the box. An empty inline-block takes its baseline from its
+     bottom margin edge, so any height or top margin here is claimed entirely above the baseline
+     and grows the line box — a "---" line then stands taller than its neighbours, the same
+     inflation .cm-list-number warns about below. A 1px box lifted 6px clears the text baseline
+     while staying well inside the line's ascent, so the rule sits at mid-x-height and the line
+     keeps the height every other line has. */
+  height: 0;
+  vertical-align: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--text) 55%, transparent);
+}
+
 /* Bullet and numbered lists (Docs/Specs/20-LISTS.md): the "- " / "<n>. " marker is replaced by
    one of these widgets. Both reserve the same 23px indent as the task checkbox so list, task, and
    ordered content line up. The bullet dot is drawn (no font glyph); the number right-aligns in a

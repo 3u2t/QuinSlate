@@ -13,6 +13,8 @@ import { detectCalc } from "./inlineCalc.js";
 import { taskPlugin, taskKeymap } from "./tasks.js";
 import { listPlugin, listKeymap, listRenumber } from "./lists.js";
 import { linkPlugin } from "./links.js";
+import { markdownPlugin } from "./markdownFormat.js";
+import { verticalMotionKeymap } from "./verticalMotion.js";
 import { scrollerFocusPlugin } from "./scrollerFocus.js";
 import { indentKeymap } from "./indent.js";
 import { panelKeymap } from "./panelShortcuts.js";
@@ -32,12 +34,19 @@ const baseExtensions = [
   // Tab/Shift+Tab for every line — item kinds and plain text alike — so it sits
   // alongside rather than inside either module.
   indentKeymap,
+  // Also before standardKeymap, and for the same reason: it rebinds the Arrow and Page motion
+  // commands so the caret keeps its column when the markers the destination line is hiding are
+  // about to be revealed.
+  verticalMotionKeymap,
   keymap.of([...historyKeymap, ...standardKeymap]),
   taskPlugin,
   listPlugin,
   listRenumber,
   // Marks URLs anywhere in the text; no keymap, and it never touches the document.
   linkPlugin,
+  // Headings, bold/italic/strikethrough, inline code, and rules — also decoration-only, and
+  // registered after linkPlugin because a URL's characters are claimed before emphasis reads them.
+  markdownPlugin,
   // Returns focus to the content when a scrollbar press moves it to the scroller.
   scrollerFocusPlugin,
   EditorView.lineWrapping,

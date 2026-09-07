@@ -1,6 +1,6 @@
 # Feature Queue
 
-> _Last updated: 2026-07-19_
+> _Last updated: 2026-09-06_
 
 - [x] 01 Core buffers, tray icon, hotkey, autosave — [SPEC](01-CORE.md)
 - [x] 02 Launch on startup — [SPEC](02-STARTUP.md)
@@ -18,10 +18,11 @@
 - [x] 14 Tab System Redesign — [SPEC](14-TABS-REDESIGN.md)
 - [x] 15 Tray peek show animation — [SPEC](15-PEEK-SHOW-ANIMATION.md)
 - [x] 16 Application logging — [SPEC](16-LOGGING.md)
-- [ ] 17 Editor migration to CodeMirror 6 in WebView2 — [SPEC](17-EDITOR-CODEMIRROR-MIGRATION.md)
+- [x] 17 Editor migration to CodeMirror 6 in WebView2 — [SPEC](17-EDITOR-CODEMIRROR-MIGRATION.md)
 - [x] 18 Character-limit notice — [SPEC](18-CHARACTER-LIMIT-NOTICE.md)
 - [x] 19 Checkable tasks — [SPEC](19-CHECKABLE-TASKS.md)
 - [x] 20 Bullet and numbered lists — [SPEC](20-LISTS.md)
 - [x] 21 Clickable links — [SPEC](21-LINKS.md)
 - [x] 22 Manual theme switch — [SPEC](22-THEME-SWITCH.md)
+- [x] 23 Markdown formatting — [SPEC](23-MARKDOWN-FORMATTING.md)
 
