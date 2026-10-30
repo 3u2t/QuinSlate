@@ -36,6 +36,7 @@ internal sealed class EditorHost
     private const string EditorPageUrl = "https://quinslate.editor/editor.html";
     private const string EditorAssetsRelativePath = "WebEditor";
     private const string WebView2UserDataFolderName = "WebView2";
+    private const int FlushTimeoutMilliseconds = 1000;
 
     private static Task<CoreWebView2Environment> sharedEnvironmentTask;
 
@@ -45,6 +46,7 @@ internal sealed class EditorHost
 
     private bool isReady;
     private bool isInitializing;
+    private TaskCompletionSource<bool> pendingFlush;
 
     /// <summary>Raised on the UI thread when the page and CodeMirror have initialised.</summary>
     public event EventHandler Ready;
@@ -192,6 +194,27 @@ internal sealed class EditorHost
         }
     }
 
+    public bool Reload()
+    {
+        if (webView.CoreWebView2 == null)
+        {
+            return false;
+        }
+
+        isReady = false;
+
+        try
+        {
+            webView.CoreWebView2.Reload();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.ForContext<EditorHost>().Error(ex, "Failed to reload the editor page.");
+            return false;
+        }
+    }
+
     private static void ConfigureSettings(CoreWebView2Settings settings)
     {
         settings.AreDefaultContextMenusEnabled = false;
@@ -230,15 +253,7 @@ internal sealed class EditorHost
 
         // Host state is authoritative: on reload the page reports ready again and the panel
         // repopulates all five buffers from BufferService, so at most in-session undo is lost.
-        isReady = false;
-        try
-        {
-            webView.CoreWebView2?.Reload();
-        }
-        catch (Exception ex)
-        {
-            Log.ForContext<EditorHost>().Error(ex, "Failed to reload the editor page after a process failure.");
-        }
+        Reload();
     }
 
     private void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
@@ -283,6 +298,13 @@ internal sealed class EditorHost
                 break;
             case "contentSync":
                 ContentSynced?.Invoke(this, new EditorContentEventArgs(GetInt(root, "index"), GetString(root, "text")));
+                break;
+            case "flushed":
+                TaskCompletionSource<bool> flush = pendingFlush;
+                if (flush != null)
+                {
+                    flush.TrySetResult(true);
+                }
                 break;
             case "calcRequest":
                 HandleCalcRequest(GetInt(root, "index"), GetString(root, "lineContent"));
@@ -472,6 +494,24 @@ internal sealed class EditorHost
     public void RequestFlush()
     {
         PostJson(writer => writer.WriteString("type", "flush"));
+    }
+
+    public async Task FlushAsync()
+    {
+        if (webView.CoreWebView2 == null || isReady == false)
+        {
+            return;
+        }
+
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        pendingFlush = completion;
+        PostJson(writer => writer.WriteString("type", "flush"));
+
+        await Task.WhenAny(completion.Task, Task.Delay(FlushTimeoutMilliseconds));
+        if (ReferenceEquals(pendingFlush, completion))
+        {
+            pendingFlush = null;
+        }
     }
 
     /// <summary>Inserts text at the selection (the shared, cap-clamped paste path).</summary>

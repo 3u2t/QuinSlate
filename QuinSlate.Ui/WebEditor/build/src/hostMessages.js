@@ -7,6 +7,7 @@ import { getView } from "./editorContext.js";
 import { normaliseIncoming } from "./crlfText.js";
 import { initBuffers, activate, setText } from "./buffers.js";
 import { flushSync } from "./contentSync.js";
+import { postToHost } from "./hostBridge.js";
 import { applyCalcResult } from "./inlineCalc.js";
 import { applySavedImage } from "./images.js";
 import { resetCaretBlink, beginRevealEntrance } from "./startupReveal.js";
@@ -82,6 +83,7 @@ function dispatchHostMessage(message) {
       break;
     case "flush":
       flushSync();
+      postToHost("flushed");
       break;
     case "insert":
       insertClamped(message.text);

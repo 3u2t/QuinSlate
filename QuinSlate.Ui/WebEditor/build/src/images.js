@@ -7,6 +7,7 @@ import { logWarning, describeError } from "./pageLog.js";
 const IMAGE_PATTERN = /!\[([^\]]*)\]\((images\/[^)\s]+)\)/g;
 const IMAGE_SOURCE_PREFIX = "images/";
 const IMAGE_BASE_URL = "https://quinslate.images/";
+const IMAGE_CACHE_TOKEN = Date.now().toString(36);
 const IMAGE_CLASS = "cm-image";
 const IMAGE_CONTENT_CLASS = "cm-image-content";
 const IMAGE_BROKEN_CLASS = "cm-image-broken";
@@ -35,7 +36,7 @@ export function findImages(text) {
 
 function imageUrl(src) {
   const relative = src.slice(IMAGE_SOURCE_PREFIX.length);
-  return IMAGE_BASE_URL + relative.split("/").map(encodeURIComponent).join("/");
+  return IMAGE_BASE_URL + relative.split("/").map(encodeURIComponent).join("/") + "?v=" + IMAGE_CACHE_TOKEN;
 }
 
 class ImageWidget extends WidgetType {

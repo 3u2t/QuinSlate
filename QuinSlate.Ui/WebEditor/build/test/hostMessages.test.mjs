@@ -42,4 +42,9 @@ describe("host message dispatch guard", () => {
     assert.match(posted[0].message, /^Handling the host message 'focus' failed: TypeError/);
     assert.equal(typeof posted[0].stack, "string");
   });
+
+  it("acknowledges a flush request", () => {
+    handleHostMessage({ type: "flush" });
+    assert.deepEqual(posted, [{ type: "flushed" }]);
+  });
 });

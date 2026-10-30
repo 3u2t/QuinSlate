@@ -46,6 +46,10 @@ public sealed partial class AboutView : UserControl
     /// </summary>
     public event EventHandler CloseRequested;
 
+    public event EventHandler ExportBackupRequested;
+
+    public event EventHandler ImportBackupRequested;
+
     /// <summary>
     /// The absolute directory the running services read and write data in. Set by
     /// the caller before the view is shown so it displays the real, live storage
@@ -234,6 +238,30 @@ public sealed partial class AboutView : UserControl
     private void OnCloseClicked(object sender, RoutedEventArgs e)
     {
         EventHandler handler = CloseRequested;
+        if (handler != null)
+        {
+            handler(this, EventArgs.Empty);
+        }
+    }
+
+    public void SetBackupBusy(bool isBusy)
+    {
+        ExportBackupButton.IsEnabled = !isBusy;
+        ImportBackupButton.IsEnabled = !isBusy;
+    }
+
+    private void OnExportBackupClicked(object sender, RoutedEventArgs e)
+    {
+        EventHandler handler = ExportBackupRequested;
+        if (handler != null)
+        {
+            handler(this, EventArgs.Empty);
+        }
+    }
+
+    private void OnImportBackupClicked(object sender, RoutedEventArgs e)
+    {
+        EventHandler handler = ImportBackupRequested;
         if (handler != null)
         {
             handler(this, EventArgs.Empty);

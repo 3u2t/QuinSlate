@@ -115,6 +115,21 @@
                                 </StackPanel>
                             </Button>
                         </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="ExportBackupButton" Style="{StaticResource ActionButtonStyle}" Click="OnExportBackupClicked">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE898;" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="Export backup…" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="ImportBackupButton" Style="{StaticResource ActionButtonStyle}" Click="OnImportBackupClicked">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE896;" FontSize="12" VerticalAlignment="Center" />
+                                    <TextBlock Text="Import backup…" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

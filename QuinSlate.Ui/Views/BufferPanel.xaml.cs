@@ -13,6 +13,7 @@ using QuinSlate.Ui.Models;
 using QuinSlate.Ui.Services;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI;
@@ -141,6 +142,7 @@ public sealed partial class BufferPanel : UserControl
     private ImageService imageService;
     private EditorImageInserter imageInserter;
     private bool wantFocusOnReady;
+    private bool suppressContentSync;
 
     private TabEditFlyout tabEditFlyout;
     private BufferKeyboardController keyboardController;
@@ -950,6 +952,13 @@ public sealed partial class BufferPanel : UserControl
         }
 
         editorHost.InitBuffers(payload);
+
+        foreach (KeyValuePair<int, string> buffer in payload)
+        {
+            UpdateClearButtonState(buffer.Key, string.IsNullOrEmpty(buffer.Value));
+        }
+
+        suppressContentSync = false;
         lastActivatedBufferIndex = GetActiveBufferIndex();
         editorHost.Activate(lastActivatedBufferIndex);
         ApplyDitheredBackground();
@@ -1606,8 +1615,37 @@ public sealed partial class BufferPanel : UserControl
         }
     }
 
+    public async Task FlushForBackupAsync()
+    {
+        if (editorHost != null)
+        {
+            await editorHost.FlushAsync();
+        }
+
+        if (bufferService != null)
+        {
+            bufferService.FlushPendingWritesSync();
+        }
+    }
+
+    public void ReloadBuffers()
+    {
+        if (bufferService == null || editorHost == null)
+        {
+            return;
+        }
+
+        initialBuffers = bufferService.LoadAll();
+        suppressContentSync = editorHost.Reload();
+    }
+
     private void OnEditorContentSynced(object sender, EditorContentEventArgs e)
     {
+        if (suppressContentSync)
+        {
+            return;
+        }
+
         if (bufferService == null)
         {
             return;

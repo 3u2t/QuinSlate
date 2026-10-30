@@ -19,6 +19,7 @@ have it all autosaved to plain text.
 - **Peek panel** - glance at a buffer without stealing focus.
 - **Inline calc** - type an expression, get the result.
 - **Images** - paste, drop, or insert a picture; stored beside the slates and shown inline.
+- **Backup and restore** - export all five slates and their images as one `.quinslate` file, import it anywhere.
 - **Pin on top** - single-instance, and launch-on-login support.
 
 ## Stack

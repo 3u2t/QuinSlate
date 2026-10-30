@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using WinRT.Interop;
 using Buffer = QuinSlate.Ui.Models.Buffer;
 
@@ -101,6 +102,8 @@ public sealed partial class MainWindow : Window
     private TrayIcon trayIcon;
     private TrayPeekWindow trayPeekWindow;
     private AboutWindow aboutWindow;
+    private BackupService backupService;
+    private BackupController backupController;
 
     private bool isPanelVisible;
     private bool isWindowActive;
@@ -166,6 +169,7 @@ public sealed partial class MainWindow : Window
         this.bufferService = bufferService;
         this.startupService = startupService;
         this.settingsService = settingsService;
+        backupService = new BackupService(bufferService.AppDataDirectory);
 
         Title = WindowTitle;
 
@@ -831,8 +835,19 @@ public sealed partial class MainWindow : Window
         // build finished; building while the panel is still hidden lets the show below paint
         // promptly.
         string storageDirectory = bufferService != null ? bufferService.AppDataDirectory : null;
-        aboutWindow = new AboutWindow(windowHandle, storageDirectory, themeService);
-        aboutWindow.Closed += OnAboutWindowClosed;
+        AboutWindow dialog = new AboutWindow(windowHandle, storageDirectory, themeService);
+        aboutWindow = dialog;
+        dialog.Closed += OnAboutWindowClosed;
+        dialog.ExportBackupRequested += OnAboutExportBackupRequested;
+        dialog.ImportBackupRequested += OnAboutImportBackupRequested;
+        backupController = new BackupController(
+            backupService,
+            bufferService,
+            Panel.FlushForBackupAsync,
+            ReloadAfterImportAsync,
+            () => dialog.WindowId,
+            () => dialog.ViewXamlRoot,
+            dialog.SetBackupBusy);
 
         PrepareModalBackdrop();
 
@@ -905,10 +920,35 @@ public sealed partial class MainWindow : Window
         if (aboutWindow != null)
         {
             aboutWindow.Closed -= OnAboutWindowClosed;
+            aboutWindow.ExportBackupRequested -= OnAboutExportBackupRequested;
+            aboutWindow.ImportBackupRequested -= OnAboutImportBackupRequested;
             aboutWindow = null;
         }
 
+        backupController = null;
         HideModalScrim();
+    }
+
+    private async void OnAboutExportBackupRequested(object sender, EventArgs e)
+    {
+        if (backupController != null)
+        {
+            await backupController.ExportAsync();
+        }
+    }
+
+    private async void OnAboutImportBackupRequested(object sender, EventArgs e)
+    {
+        if (backupController != null)
+        {
+            await backupController.ImportAsync();
+        }
+    }
+
+    private Task ReloadAfterImportAsync()
+    {
+        Panel.ReloadBuffers();
+        return Task.CompletedTask;
     }
 
     private void ShowModalScrim()
@@ -976,9 +1016,13 @@ public sealed partial class MainWindow : Window
         if (aboutWindow != null)
         {
             aboutWindow.Closed -= OnAboutWindowClosed;
+            aboutWindow.ExportBackupRequested -= OnAboutExportBackupRequested;
+            aboutWindow.ImportBackupRequested -= OnAboutImportBackupRequested;
             aboutWindow.Close();
             aboutWindow = null;
         }
+
+        backupController = null;
 
         if (backgroundBrush != null)
         {

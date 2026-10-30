@@ -22,7 +22,7 @@ namespace QuinSlate.Ui.Services;
 public sealed class BufferService
 {
     private const int DebounceMilliseconds = 300;
-    private const string BufferFileNameFormat = "buffer-{0}.txt";
+    internal const string BufferFileNameFormat = "buffer-{0}.txt";
 
     /// <summary>
     /// Upper bound on how long the shutdown flush waits for debounce-fired async

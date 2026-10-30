@@ -11,7 +11,7 @@ internal sealed class ImageService
 {
     public const string FolderName = "images";
 
-    private const int MaximumBytes = 40 * 1024 * 1024;
+    internal const int MaximumBytes = 40 * 1024 * 1024;
     private const int RandomSuffixBytes = 3;
     private const string RelativeFolderPrefix = FolderName + "/";
     private const string FileNameTimestampFormat = "yyyyMMdd-HHmmss";
@@ -95,7 +95,7 @@ internal sealed class ImageService
         }
     }
 
-    private static string DetectExtension(byte[] data)
+    internal static string DetectExtension(byte[] data)
     {
         if (StartsWith(data, PngSignature))
         {

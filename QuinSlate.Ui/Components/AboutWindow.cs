@@ -34,7 +34,7 @@ public sealed class AboutWindow : Window
     /// footer flush at the bottom.
     /// </summary>
     private const double CardWidthLogical = 480;
-    private const double CardHeightLogical = 440;
+    private const double CardHeightLogical = 490;
 
     /// <summary>
     /// Height in DIPs of the card's draggable header bar. Must match the <c>AboutBarHeight</c>
@@ -57,6 +57,7 @@ public sealed class AboutWindow : Window
     private readonly ThemeService themeService;
     private readonly IntPtr ownerHwnd;
     private readonly IntPtr hwnd;
+    private readonly WindowId windowId;
     private readonly AppWindow appWindow;
     private readonly float scale;
     private readonly WindowBackgroundBrush backgroundBrush;
@@ -97,7 +98,7 @@ public sealed class AboutWindow : Window
         Content = view;
 
         hwnd = WindowNative.GetWindowHandle(this);
-        WindowId windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
+        windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
         appWindow = AppWindow.GetFromWindowId(windowId);
 
         scale = NativeMethods.GetDpiForWindow(ownerHwnd) / 96.0f;
@@ -154,6 +155,27 @@ public sealed class AboutWindow : Window
         {
             NativeMethods.AttachThreadInput(thisThread, foregroundThread, false);
         }
+    }
+
+    public WindowId WindowId => windowId;
+
+    public XamlRoot ViewXamlRoot => view.XamlRoot;
+
+    public event EventHandler ExportBackupRequested
+    {
+        add { view.ExportBackupRequested += value; }
+        remove { view.ExportBackupRequested -= value; }
+    }
+
+    public event EventHandler ImportBackupRequested
+    {
+        add { view.ImportBackupRequested += value; }
+        remove { view.ImportBackupRequested -= value; }
+    }
+
+    public void SetBackupBusy(bool isBusy)
+    {
+        view.SetBackupBusy(isBusy);
     }
 
     private void AddEscapeAccelerator()
