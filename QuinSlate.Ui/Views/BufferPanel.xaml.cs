@@ -1,3 +1,4 @@
+using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -12,7 +13,6 @@ using QuinSlate.Ui.Models;
 using QuinSlate.Ui.Services;
 using System;
 using System.Collections.Generic;
-using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI;
@@ -57,6 +57,7 @@ public sealed partial class BufferPanel : UserControl
     private const string KeyCommandCyclePrev = "cycle-prev";
     private const string KeyCommandSelectPrefix = "select-";
     private const string KeyCommandEditFlyout = "edit-flyout";
+    private const string KeyCommandInsertImage = "insert-image";
 
     // Context-menu command names sent to the editor page.
     private const string EditorCommandUndo = "undo";
@@ -137,6 +138,8 @@ public sealed partial class BufferPanel : UserControl
     private readonly EmojiPicker emojiPicker = new EmojiPicker();
     private EditorHost editorHost;
     private EditorContextMenu editorContextMenu;
+    private ImageService imageService;
+    private EditorImageInserter imageInserter;
     private bool wantFocusOnReady;
 
     private TabEditFlyout tabEditFlyout;
@@ -360,12 +363,15 @@ public sealed partial class BufferPanel : UserControl
         keyboardController = new BufferKeyboardController(BufferTabView);
         keyboardController.EditFlyoutRequested += OnEditFlyoutRequested;
 
+        imageService = new ImageService(bufferService.AppDataDirectory);
+
         editorContextMenu = new EditorContextMenu(
             onUndo: () => editorHost?.SendCommand(EditorCommandUndo),
             onRedo: () => editorHost?.SendCommand(EditorCommandRedo),
             onCut: () => editorHost?.SendCommand(EditorCommandCut),
             onCopy: () => editorHost?.SendCommand(EditorCommandCopy),
             onPaste: OnEditorPasteRequested,
+            onInsertImage: OnInsertImageRequested,
             onSelectAll: () => editorHost?.SendCommand(EditorCommandSelectAll));
 
         ClearAllDictionaries();
@@ -396,7 +402,7 @@ public sealed partial class BufferPanel : UserControl
         BufferTabView.Loaded += OnBufferTabViewLoaded;
         RootGrid.PreviewKeyDown += OnPanelPreviewKeyDown;
 
-        editorHost = new EditorHost(EditorWebView, bufferService.AppDataDirectory);
+        editorHost = new EditorHost(EditorWebView, bufferService.AppDataDirectory, imageService);
         editorHost.Ready += OnEditorReady;
         editorHost.ContentSynced += OnEditorContentSynced;
         editorHost.KeyCommandReceived += OnEditorKeyCommand;
@@ -405,6 +411,8 @@ public sealed partial class BufferPanel : UserControl
         editorHost.EntranceStarted += OnEditorEntranceStarted;
         editorHost.CreationFailed += OnEditorCreationFailed;
         editorHost.LimitReached += OnEditorLimitReached;
+
+        imageInserter = new EditorImageInserter(editorHost, imageService, ResolveWindowId);
 
         limitNotice = new LimitNotice(LimitNoticeSurface);
         editorFocusGuard = new EditorFocusGuard(EditorWebView, BufferTabView);
@@ -1542,21 +1550,32 @@ public sealed partial class BufferPanel : UserControl
 
     private async void OnEditorPasteRequested()
     {
-        // Text-only, host-driven paste: reuses the STA WinRT clipboard path; the page clamps the
-        // insertion to the cap and normalises line endings, matching the retired paste path.
-        if (editorHost == null)
+        if (imageInserter == null)
         {
             return;
         }
 
-        DataPackageView dataView = Clipboard.GetContent();
-        if (!dataView.Contains(StandardDataFormats.Text))
+        await imageInserter.PasteAsync();
+    }
+
+    private async void OnInsertImageRequested()
+    {
+        if (imageInserter == null)
         {
             return;
         }
 
-        string text = await dataView.GetTextAsync();
-        editorHost.InsertText(text);
+        await imageInserter.InsertFromPickerAsync();
+    }
+
+    private WindowId ResolveWindowId()
+    {
+        if (XamlRoot == null || XamlRoot.ContentIslandEnvironment == null)
+        {
+            return default;
+        }
+
+        return XamlRoot.ContentIslandEnvironment.AppWindowId;
     }
 
     /// <summary>
@@ -1621,6 +1640,10 @@ public sealed partial class BufferPanel : UserControl
         else if (command == KeyCommandEditFlyout)
         {
             keyboardController.RequestEditFlyout();
+        }
+        else if (command == KeyCommandInsertImage)
+        {
+            OnInsertImageRequested();
         }
         else if (command.StartsWith(KeyCommandSelectPrefix, StringComparison.Ordinal))
         {

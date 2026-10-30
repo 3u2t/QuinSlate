@@ -48,6 +48,27 @@ internal static class AtomicFileWriter
         }
     }
 
+    public static async Task WriteAllBytesAsync(string path, byte[] content)
+    {
+        string tempPath = path + TempFileSuffix;
+        try
+        {
+            using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await stream.WriteAsync(content).ConfigureAwait(false);
+                await stream.FlushAsync().ConfigureAwait(false);
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(tempPath, path, overwrite: true);
+        }
+        catch
+        {
+            TryDeleteTempFile(tempPath);
+            throw;
+        }
+    }
+
     /// <summary>
     /// Synchronous variant of <see cref="WriteAllTextAsync"/> for shutdown flush
     /// paths where awaiting is not possible.

@@ -14,6 +14,7 @@ import { taskPlugin, taskKeymap } from "./tasks.js";
 import { listPlugin, listKeymap, listRenumber } from "./lists.js";
 import { linkPlugin } from "./links.js";
 import { markdownPlugin } from "./markdownFormat.js";
+import { imagePlugin } from "./images.js";
 import { verticalMotionKeymap } from "./verticalMotion.js";
 import { scrollerFocusPlugin } from "./scrollerFocus.js";
 import { indentKeymap } from "./indent.js";
@@ -48,6 +49,7 @@ const baseExtensions = [
   // Headings, bold/italic/strikethrough, inline code, and rules — also decoration-only, and
   // registered after linkPlugin because a URL's characters are claimed before emphasis reads them.
   markdownPlugin,
+  imagePlugin,
   // Returns focus to the content when a scrollbar press moves it to the scroller.
   scrollerFocusPlugin,
   EditorView.lineWrapping,

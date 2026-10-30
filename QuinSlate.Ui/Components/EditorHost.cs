@@ -32,6 +32,7 @@ internal sealed class EditorHost
     public const string CauseType = "type";
 
     private const string VirtualHostName = "quinslate.editor";
+    private const string ImagesVirtualHostName = "quinslate.images";
     private const string EditorPageUrl = "https://quinslate.editor/editor.html";
     private const string EditorAssetsRelativePath = "WebEditor";
     private const string WebView2UserDataFolderName = "WebView2";
@@ -40,6 +41,7 @@ internal sealed class EditorHost
 
     private readonly WebView2 webView;
     private readonly string appDataDirectory;
+    private readonly ImageService imageService;
 
     private bool isReady;
     private bool isInitializing;
@@ -80,7 +82,7 @@ internal sealed class EditorHost
     public event EventHandler EntranceStarted;
 
     /// <summary>Creates the host over <paramref name="webView"/>, storing data under <paramref name="appDataDirectory"/>.</summary>
-    public EditorHost(WebView2 webView, string appDataDirectory)
+    public EditorHost(WebView2 webView, string appDataDirectory, ImageService imageService)
     {
         if (webView == null)
         {
@@ -92,8 +94,14 @@ internal sealed class EditorHost
             throw new ArgumentNullException(nameof(appDataDirectory));
         }
 
+        if (imageService == null)
+        {
+            throw new ArgumentNullException(nameof(imageService));
+        }
+
         this.webView = webView;
         this.appDataDirectory = appDataDirectory;
+        this.imageService = imageService;
     }
 
     /// <summary>Whether the page has reported it is ready to receive content operations.</summary>
@@ -159,6 +167,11 @@ internal sealed class EditorHost
             core.SetVirtualHostNameToFolderMapping(
                 VirtualHostName,
                 Path.Combine(AppContext.BaseDirectory, EditorAssetsRelativePath),
+                CoreWebView2HostResourceAccessKind.Allow);
+
+            core.SetVirtualHostNameToFolderMapping(
+                ImagesVirtualHostName,
+                imageService.DirectoryPath,
                 CoreWebView2HostResourceAccessKind.Allow);
 
             core.WebMessageReceived += OnWebMessageReceived;
@@ -274,6 +287,9 @@ internal sealed class EditorHost
             case "calcRequest":
                 HandleCalcRequest(GetInt(root, "index"), GetString(root, "lineContent"));
                 break;
+            case "saveImage":
+                _ = HandleSaveImageAsync(GetString(root, "requestId"), GetString(root, "data"));
+                break;
             case "openLink":
                 HandleOpenLink(GetString(root, "href"));
                 break;
@@ -316,6 +332,31 @@ internal sealed class EditorHost
             writer.WriteNumber("index", index);
             writer.WriteBoolean("ok", ok);
             writer.WriteString("result", ok ? result : string.Empty);
+        });
+    }
+
+    private async Task HandleSaveImageAsync(string requestId, string base64)
+    {
+        string src = null;
+        try
+        {
+            if (string.IsNullOrEmpty(base64) == false)
+            {
+                byte[] data = Convert.FromBase64String(base64);
+                src = await imageService.SaveAsync(data);
+            }
+        }
+        catch (FormatException)
+        {
+            Log.ForContext<EditorHost>().Warning("Rejected an editor image with a malformed base64 payload.");
+        }
+
+        PostJson(writer =>
+        {
+            writer.WriteString("type", "imageSaved");
+            writer.WriteString("requestId", requestId ?? string.Empty);
+            writer.WriteBoolean("ok", src != null);
+            writer.WriteString("src", src ?? string.Empty);
         });
     }
 

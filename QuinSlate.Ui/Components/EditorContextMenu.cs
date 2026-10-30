@@ -16,6 +16,7 @@ namespace QuinSlate.Ui.Components;
 internal sealed class EditorContextMenu
 {
     private const double MenuMinWidth = 135;
+    private const string InsertImageText = "Insert image…";
 
     private readonly MenuFlyout menu;
     private readonly MenuFlyoutItem undoItem;
@@ -34,6 +35,7 @@ internal sealed class EditorContextMenu
         Action onCut,
         Action onCopy,
         Action onPaste,
+        Action onInsertImage,
         Action onSelectAll)
     {
         menu = new MenuFlyout();
@@ -47,6 +49,11 @@ internal sealed class EditorContextMenu
         cutItem = new MenuFlyoutItem { Text = "Cut", Icon = new SymbolIcon(Symbol.Cut) };
         copyItem = new MenuFlyoutItem { Text = "Copy", Icon = new SymbolIcon(Symbol.Copy) };
         pasteItem = new MenuFlyoutItem { Text = "Paste", Icon = new SymbolIcon(Symbol.Paste) };
+        var insertImageItem = new MenuFlyoutItem
+        {
+            Text = InsertImageText,
+            Icon = new SymbolIcon(Symbol.Pictures),
+        };
         var selectAllItem = new MenuFlyoutItem { Text = "Select All", Icon = new SymbolIcon(Symbol.SelectAll) };
 
         undoItem.Click += (s, e) => onUndo?.Invoke();
@@ -54,6 +61,7 @@ internal sealed class EditorContextMenu
         cutItem.Click += (s, e) => onCut?.Invoke();
         copyItem.Click += (s, e) => onCopy?.Invoke();
         pasteItem.Click += (s, e) => onPaste?.Invoke();
+        insertImageItem.Click += (s, e) => onInsertImage?.Invoke();
         selectAllItem.Click += (s, e) => onSelectAll?.Invoke();
 
         menu.Items.Add(undoItem);
@@ -62,6 +70,7 @@ internal sealed class EditorContextMenu
         menu.Items.Add(cutItem);
         menu.Items.Add(copyItem);
         menu.Items.Add(pasteItem);
+        menu.Items.Add(insertImageItem);
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(selectAllItem);
 

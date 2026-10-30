@@ -100,17 +100,19 @@ Contracts (names indicative):
 | host → page | `background { pngBase64, cssWidth, cssHeight }` | Dithered mesh swap (below) |
 | host → page | `theme { … }` | Colours on theme change |
 | host → page | `calcResult { index, ok, result }` | Calc evaluation reply |
+| host → page | `imageSaved { requestId, ok, src }` | Stored image path, or failure |
 | page → host | `ready` | Page + CM6 initialised |
 | page → host | `contentSync { index, text }` | Debounced content push (below) |
 | page → host | `calcRequest { index, lineContent }` | Line ending in `=` typed |
+| page → host | `saveImage { requestId, data }` | Pasted or dropped image bytes (base64) |
 | page → host | `key { … }` | Panel-level shortcuts typed inside the editor |
 | page → host | `contextMenu { x, y, canUndo, canRedo, hasSelection }` | Right-click |
 | page → host | `historyState { index, canUndo, canRedo }` | Menu enablement |
 
 **Logging rule:** messages carrying buffer text are never logged — not the
-payload, not a prefix, not on either side. Log message *names*, indices, and
-lengths only. This is the existing "never log buffer contents" rule crossing
-the bridge.
+payload, not a prefix, not on either side. `saveImage` bytes are never logged
+either. Log message *names*, indices, and lengths only. This is the existing
+"never log buffer contents" rule crossing the bridge.
 
 ---
 

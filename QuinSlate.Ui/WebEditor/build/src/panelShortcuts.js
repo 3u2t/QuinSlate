@@ -24,6 +24,7 @@ export const panelKeymap = Prec.highest(
     { key: "Mod-4", preventDefault: true, run: () => sendKey("select-4") },
     { key: "Mod-5", preventDefault: true, run: () => sendKey("select-5") },
     { key: "F2", preventDefault: true, run: () => sendKey("edit-flyout") },
+    { key: "Mod-Shift-i", preventDefault: true, run: () => sendKey("insert-image") },
     // Plain text: bold/italic/underline are no-ops (swallowed so nothing toggles).
     { key: "Mod-b", preventDefault: true, run: () => true },
     { key: "Mod-i", preventDefault: true, run: () => true },

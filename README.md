@@ -18,6 +18,7 @@ have it all autosaved to plain text.
 - **System tray icon** - with left-click toggle and context menu.
 - **Peek panel** - glance at a buffer without stealing focus.
 - **Inline calc** - type an expression, get the result.
+- **Images** - paste, drop, or insert a picture; stored beside the slates and shown inline.
 - **Pin on top** - single-instance, and launch-on-login support.
 
 ## Stack

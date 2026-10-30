@@ -8,6 +8,7 @@ import { normaliseIncoming } from "./crlfText.js";
 import { initBuffers, activate, setText } from "./buffers.js";
 import { flushSync } from "./contentSync.js";
 import { applyCalcResult } from "./inlineCalc.js";
+import { applySavedImage } from "./images.js";
 import { resetCaretBlink, beginRevealEntrance } from "./startupReveal.js";
 import { applyTheme, applyBackground } from "./appearance.js";
 
@@ -90,6 +91,9 @@ function dispatchHostMessage(message) {
       break;
     case "calcResult":
       applyCalcResult(message);
+      break;
+    case "imageSaved":
+      applySavedImage(message);
       break;
     case "theme":
       applyTheme(message);
